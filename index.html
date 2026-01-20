@@ -19,126 +19,28 @@
   --muted: #9ca3af;
   --danger: #ef4444;
 }
-
 * { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  background: linear-gradient(180deg, #020617, #0f172a);
-  color: var(--text);
-}
-
-header {
-  padding: 16px;
-  text-align: center;
-  font-weight: 700;
-  letter-spacing: .5px;
-  background: rgba(2,6,23,.6);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  backdrop-filter: blur(6px);
-}
-
-nav {
-  display: flex;
-  gap: 6px;
-  padding: 10px;
-  background: rgba(2,6,23,.6);
-  position: sticky;
-  top: 56px;
-  z-index: 9;
-  backdrop-filter: blur(6px);
-}
-
-nav button {
-  flex: 1;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid #1f2937;
-  background: #020617;
-  color: var(--text);
-  font-weight: 600;
-}
-
-nav button.active {
-  background: linear-gradient(135deg, #22c55e, #38bdf8);
-  color: #020617;
-}
-
-.section { display: none; padding: 14px; }
-.section.active { display: block; }
-
-.card {
-  background: rgba(31,41,55,.85);
-  border: 1px solid #1f2937;
-  border-radius: 18px;
-  padding: 14px;
-  margin-bottom: 12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
-}
-
-.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-
-input, select, button {
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid #1f2937;
-  background: #020617;
-  color: var(--text);
-}
-
-button.primary { background: linear-gradient(135deg, #22c55e, #38bdf8); color: #020617; font-weight: 700; }
-button.ghost { background: transparent; }
-button.danger { border-color: #3f1d1d; background: #160a0a; color: #fecaca; }
-
-.list { display: grid; grid-template-columns: 1fr; gap: 10px; }
-
-.item {
-  background: #020617;
-  border: 1px solid #1f2937;
-  border-radius: 16px;
-  padding: 12px;
-}
-
-.item h4 { margin: 0 0 6px 0; }
-.muted { color: var(--muted); font-size: 14px; }
-
-.player {
-  position: sticky;
-  bottom: 0;
-  background: rgba(2,6,23,.92);
-  backdrop-filter: blur(8px);
-  border-top: 1px solid #1f2937;
-  padding: 12px;
-}
-
-.player .title { font-weight: 700; }
-.player .sub { font-size: 13px; color: var(--muted); }
-
-audio { width: 100%; }
-
-.actions { display: flex; gap: 6px; flex-wrap: wrap; }
-
-.small { font-size: 13px; }
-
-.searchbox { margin-bottom: 10px; }
-
-.group {
-  border: 1px dashed #1f2937;
-  border-radius: 18px;
-  padding: 10px;
-  margin-bottom: 10px;
-}
-
-.group-title { font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
-.episode { padding: 10px; border-radius: 14px; border: 1px solid #1f2937; margin-top: 8px; background: #020617; }
-
-.badge { font-size: 12px; background: #0b1220; padding: 4px 8px; border-radius: 999px; border: 1px solid #1f2937; }
+body { margin:0; font-family: system-ui, Arial; background: linear-gradient(180deg,#020617,#0f172a); color: var(--text); }
+header { padding:16px; text-align:center; font-weight:700; background: rgba(2,6,23,.7); position:sticky; top:0; backdrop-filter: blur(6px); z-index:10;}
+nav { display:flex; gap:6px; padding:10px; background: rgba(2,6,23,.7); position:sticky; top:56px; z-index:9;}
+nav button { flex:1; padding:12px; border-radius:14px; border:1px solid #1f2937; background:#020617; color:white; }
+nav button.active { background: linear-gradient(135deg,#22c55e,#38bdf8); color:black; font-weight:700;}
+.section { display:none; padding:14px;}
+.section.active { display:block;}
+.card { background: rgba(31,41,55,.85); border:1px solid #1f2937; border-radius:18px; padding:14px; margin-bottom:12px;}
+.row { display:flex; gap:8px; flex-wrap:wrap;}
+input,button { padding:12px; border-radius:14px; border:1px solid #1f2937; background:#020617; color:white;}
+button.primary { background: linear-gradient(135deg,#22c55e,#38bdf8); color:black; font-weight:700;}
+.list { display:grid; gap:10px;}
+.item { background:#020617; border:1px solid #1f2937; border-radius:16px; padding:12px;}
+.player { position:sticky; bottom:0; background: rgba(2,6,23,.95); padding:12px; border-top:1px solid #1f2937;}
+audio { width:100%; }
+.actions { display:flex; gap:6px; flex-wrap:wrap;}
+.group { border:1px dashed #1f2937; border-radius:16px; padding:10px; margin-bottom:10px;}
+.episode { background:#020617; border:1px solid #1f2937; border-radius:14px; padding:10px; margin-top:8px;}
+.muted { color:#9ca3af; font-size:14px;}
 </style>
 </head>
-
 <body>
 
 <header>🎧 Radio & Podcast App</header>
@@ -149,54 +51,30 @@ audio { width: 100%; }
   <button onclick="show('favoritos')">Favoritos</button>
 </nav>
 
-<!-- RADIOS -->
 <div id="radios" class="section active">
   <div class="card">
     <h3>🔍 Buscar radios en Internet</h3>
     <div class="row">
-      <input id="radioQuery" placeholder="Ej: Los 40, SER, rock, Valencia...">
+      <input id="radioQuery" placeholder="Los 40, SER, rock, Valencia...">
       <button class="primary" onclick="searchRadiosOnline()">Buscar</button>
     </div>
     <div id="radioResults" class="list"></div>
   </div>
-
-  <div class="card">
-    <h3>📻 Mis emisoras guardadas</h3>
-    <div class="row">
-      <input id="radioName" placeholder="Nombre">
-      <input id="radioUrl" placeholder="URL del stream">
-      <button class="primary" onclick="addRadio()">Añadir</button>
-    </div>
-  </div>
-
   <div id="radioList" class="list"></div>
 </div>
 
-<!-- PODCASTS -->
 <div id="podcasts" class="section">
   <div class="card">
-    <h3>🔍 Buscar podcasts en Internet</h3>
+    <h3>🔍 Buscar podcasts reales (con episodios)</h3>
     <div class="row">
-      <input id="podcastQuery" placeholder="Ej: misterio, humor, historia, nombre del programa...">
+      <input id="podcastQuery" placeholder="misterio, psicología, Nadie Sabe Nada...">
       <button class="primary" onclick="searchPodcastsOnline()">Buscar</button>
     </div>
     <div id="podcastResults" class="list"></div>
   </div>
-
-  <div class="card">
-    <h3>➕ Añadir podcast manual</h3>
-    <div class="row">
-      <input id="quickProgram" placeholder="Nombre del programa">
-      <input id="quickTitle" placeholder="Título del episodio">
-      <input id="quickUrl" placeholder="URL del episodio (mp3)">
-      <button class="primary" onclick="quickAddPodcast()">Añadir</button>
-    </div>
-  </div>
-
   <div id="programList"></div>
 </div>
 
-<!-- FAVORITOS -->
 <div id="favoritos" class="section">
   <div class="card">
     <h3>⭐ Favoritos</h3>
@@ -204,267 +82,158 @@ audio { width: 100%; }
   </div>
 </div>
 
-<!-- PLAYER -->
 <div class="player">
-  <div class="title" id="playerTitle">Nada en reproducción</div>
-  <div class="sub" id="playerSub"></div>
-
-  <div class="row">
-    <span class="badge">Velocidad</span>
-    <select id="speedControl" onchange="setSpeed()">
-      <option value="0.75">0.75x</option>
-      <option value="1" selected>1x</option>
-      <option value="1.25">1.25x</option>
-      <option value="1.5">1.5x</option>
-      <option value="2">2x</option>
-    </select>
-  </div>
-
+  <div id="playerTitle"><strong>Nada en reproducción</strong></div>
   <audio id="player" controls></audio>
 </div>
 
 <script>
-/* SERVICE WORKER */
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js");
-}
+const proxy = "https://api.allorigins.win/raw?url=";
 
 /* NAV */
-function show(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+function show(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
   event.target.classList.add('active');
 }
 
 /* PLAYER */
 const player = document.getElementById("player");
-
-function play(url, title, sub) {
-  document.getElementById("playerTitle").innerText = title || "Reproduciendo";
-  document.getElementById("playerSub").innerText = sub || "";
+function play(url,title){
+  document.getElementById("playerTitle").innerHTML = "<strong>"+title+"</strong>";
   player.src = url;
   player.play();
-  saveLastTrack(url, title, sub);
-}
-
-function setSpeed() {
-  player.playbackRate = parseFloat(speedControl.value);
-  localStorage.setItem("playbackRate", speedControl.value);
-}
-
-player.addEventListener("timeupdate", () => {
-  if (player.src) localStorage.setItem("lastTime_" + player.src, player.currentTime);
-});
-
-player.addEventListener("loadedmetadata", () => {
-  const t = localStorage.getItem("lastTime_" + player.src);
-  if (t) player.currentTime = parseFloat(t);
-});
-
-function saveLastTrack(url, title, sub) {
-  localStorage.setItem("lastTrack", JSON.stringify({url, title, sub}));
-}
-
-function restoreLastTrack() {
-  const data = JSON.parse(localStorage.getItem("lastTrack") || "null");
-  if (data) {
-    play(data.url, data.title, data.sub);
-    player.pause();
-  }
-  const rate = localStorage.getItem("playbackRate");
-  if (rate) {
-    speedControl.value = rate;
-    player.playbackRate = parseFloat(rate);
-  }
 }
 
 /* STORAGE */
-const get = (k, d=[]) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d));
-const set = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+const get=(k,d=[])=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
+const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 
-/* ONLINE RADIO SEARCH (Radio Browser API) */
-async function searchRadiosOnline() {
-  const q = document.getElementById("radioQuery").value.trim();
-  if (!q) return;
-  const results = document.getElementById("radioResults");
-  results.innerHTML = "<div class='muted'>Buscando...</div>";
-
-  try {
-    const res = await fetch(`https://de1.api.radio-browser.info/json/stations/search?name=${encodeURIComponent(q)}&limit=20`);
+/* RADIO SEARCH */
+async function searchRadiosOnline(){
+  const q = radioQuery.value.trim();
+  if(!q) return;
+  radioResults.innerHTML="<div class='muted'>Buscando...</div>";
+  try{
+    const url = proxy + encodeURIComponent("https://de1.api.radio-browser.info/json/stations/search?name="+q+"&limit=15");
+    const res = await fetch(url);
     const data = await res.json();
-
-    results.innerHTML = "";
-    data.forEach(r => {
-      const div = document.createElement("div");
-      div.className = "item";
-      div.innerHTML = `
-        <h4>${r.name}</h4>
-        <p class="muted">${r.country || ""} ${r.tags || ""}</p>
-        <div class="actions">
-          <button onclick="play('${r.url}','${r.name}','Radio online')">▶</button>
-          <button onclick="saveFoundRadio('${r.name}','${r.url}')">💾 Guardar</button>
+    radioResults.innerHTML="";
+    data.forEach(r=>{
+      const div=document.createElement("div");
+      div.className="item";
+      div.innerHTML=`
+        <strong>${r.name}</strong>
+        <p class='muted'>${r.country||""}</p>
+        <div class='actions'>
+          <button onclick="play('${r.url}','${r.name}')">▶</button>
+          <button onclick="saveRadio('${r.name}','${r.url}')">💾 Guardar</button>
         </div>`;
-      results.appendChild(div);
+      radioResults.appendChild(div);
     });
-  } catch {
-    results.innerHTML = "<div class='muted'>Error al buscar radios.</div>";
+  }catch(e){
+    radioResults.innerHTML="<div class='muted'>Error de conexión.</div>";
   }
 }
 
-function saveFoundRadio(name, url) {
-  const radios = get("radios");
-  radios.push({id: Date.now(), name, url, created: Date.now()});
-  set("radios", radios);
-  renderRadios();
-  alert("Radio guardada en tu biblioteca");
-}
-
-/* ONLINE PODCAST SEARCH (iTunes API) */
-async function searchPodcastsOnline() {
-  const q = document.getElementById("podcastQuery").value.trim();
-  if (!q) return;
-  const results = document.getElementById("podcastResults");
-  results.innerHTML = "<div class='muted'>Buscando...</div>";
-
-  try {
-    const res = await fetch(`https://itunes.apple.com/search?media=podcast&term=${encodeURIComponent(q)}&limit=20`);
-    const data = await res.json();
-
-    results.innerHTML = "";
-    data.results.forEach(p => {
-      const div = document.createElement("div");
-      div.className = "item";
-      div.innerHTML = `
-        <h4>${p.collectionName}</h4>
-        <p class="muted">${p.artistName}</p>
-        <div class="actions">
-          <button onclick="addProgramFromSearch('${p.collectionName.replace(/'/g,"")}')">➕ Añadir programa</button>
-        </div>`;
-      results.appendChild(div);
-    });
-  } catch {
-    results.innerHTML = "<div class='muted'>Error al buscar podcasts.</div>";
-  }
-}
-
-function addProgramFromSearch(name) {
-  const programs = get("programs");
-  if (!programs.find(p => p.name === name)) {
-    programs.push({id: Date.now(), name, episodes: []});
-    set("programs", programs);
-    renderPrograms();
-    alert("Programa añadido. Ahora puedes añadir episodios.");
-  }
-}
-
-/* LOCAL RADIOS */
-function addRadio() {
-  const name = radioName.value.trim();
-  const url = radioUrl.value.trim();
-  if (!name || !url) return;
-  const radios = get("radios");
-  radios.push({id: Date.now(), name, url, created: Date.now()});
-  set("radios", radios);
-  radioName.value = "";
-  radioUrl.value = "";
+function saveRadio(name,url){
+  const radios=get("radios");
+  radios.push({name,url});
+  set("radios",radios);
   renderRadios();
 }
 
-function renderRadios() {
-  const list = document.getElementById("radioList");
-  const radios = get("radios");
-  list.innerHTML = "";
-  radios.forEach(r => {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <h4>${r.name}</h4>
-      <div class="actions">
-        <button onclick="play('${r.url}','${r.name}','Radio guardada')">▶</button>
-        <button onclick="favItem('${r.name}','${r.url}')">⭐</button>
-      </div>`;
-    list.appendChild(div);
+function renderRadios(){
+  radioList.innerHTML="";
+  get("radios").forEach(r=>{
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`<strong>${r.name}</strong><button onclick="play('${r.url}','${r.name}')">▶</button>`;
+    radioList.appendChild(div);
   });
 }
 
-/* PODCASTS LOCAL */
-function quickAddPodcast() {
-  const prog = quickProgram.value.trim();
-  const title = quickTitle.value.trim();
-  const url = quickUrl.value.trim();
-  if (!prog || !title || !url) return;
+/* PODCAST SEARCH WITH RSS */
+async function searchPodcastsOnline(){
+  const q = podcastQuery.value.trim();
+  if(!q) return;
+  podcastResults.innerHTML="<div class='muted'>Buscando programas...</div>";
+  try{
+    const url = proxy + encodeURIComponent("https://itunes.apple.com/search?media=podcast&term="+q+"&limit=10");
+    const res = await fetch(url);
+    const data = await res.json();
+    podcastResults.innerHTML="";
 
-  const programs = get("programs");
-  let p = programs.find(x => x.name.toLowerCase() === prog.toLowerCase());
-  if (!p) {
-    p = {id: Date.now(), name: prog, episodes: []};
-    programs.push(p);
+    for(const p of data.results){
+      const div=document.createElement("div");
+      div.className="item";
+      div.innerHTML=`
+        <strong>${p.collectionName}</strong>
+        <p class='muted'>${p.artistName}</p>
+        <button onclick="loadEpisodes('${p.feedUrl.replace(/'/g,"")}','${p.collectionName.replace(/'/g,"")}')">Ver episodios</button>`;
+      podcastResults.appendChild(div);
+    }
+  }catch(e){
+    podcastResults.innerHTML="<div class='muted'>Error al buscar podcasts.</div>";
   }
-  p.episodes.push({id: Date.now(), title, url, created: Date.now()});
-  set("programs", programs);
-
-  quickProgram.value = "";
-  quickTitle.value = "";
-  quickUrl.value = "";
-
-  renderPrograms();
 }
 
-function renderPrograms() {
-  const wrap = document.getElementById("programList");
-  const programs = get("programs");
-  wrap.innerHTML = "";
+async function loadEpisodes(feedUrl,title){
+  podcastResults.innerHTML="<div class='muted'>Cargando episodios...</div>";
+  try{
+    const url = proxy + encodeURIComponent(feedUrl);
+    const res = await fetch(url);
+    const text = await res.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text,"text/xml");
+    const items = Array.from(xml.querySelectorAll("item")).slice(0,10);
 
-  programs.forEach(p => {
-    const group = document.createElement("div");
-    group.className = "group";
-    group.innerHTML = `<div class="group-title">${p.name}</div>`;
+    const group=document.createElement("div");
+    group.className="group";
+    group.innerHTML="<h3>"+title+"</h3>";
 
-    p.episodes.forEach(e => {
-      const ep = document.createElement("div");
-      ep.className = "episode";
-      ep.innerHTML = `
-        <strong>${e.title}</strong>
+    items.forEach(i=>{
+      const title=i.querySelector("title")?.textContent||"Episodio";
+      const enclosure=i.querySelector("enclosure")?.getAttribute("url");
+      if(!enclosure) return;
+
+      const ep=document.createElement("div");
+      ep.className="episode";
+      ep.innerHTML=`
+        <strong>${title}</strong>
         <div class="actions">
-          <button onclick="play('${e.url}','${e.title}','${p.name}')">▶</button>
-          <button onclick="favItem('${e.title}','${e.url}')">⭐</button>
+          <button onclick="play('${enclosure}','${title}')">▶</button>
         </div>`;
       group.appendChild(ep);
     });
 
-    wrap.appendChild(group);
-  });
-}
-
-/* FAVORITOS */
-function favItem(name, url) {
-  const favs = get("favs");
-  if (!favs.find(f => f.name === name)) {
-    favs.push({name, url});
-    set("favs", favs);
-    renderFavs();
+    podcastResults.innerHTML="";
+    podcastResults.appendChild(group);
+  }catch(e){
+    podcastResults.innerHTML="<div class='muted'>No se pudieron cargar los episodios.</div>";
   }
 }
 
-function renderFavs() {
-  const list = document.getElementById("favList");
-  const favs = get("favs");
-  list.innerHTML = "";
-  favs.forEach(f => {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `
-      <h4>${f.name}</h4>
-      <button onclick="play('${f.url}','${f.name}','Favorito')">▶ Escuchar</button>`;
-    list.appendChild(div);
+/* FAVORITOS */
+function favItem(name,url){
+  const favs=get("favs");
+  favs.push({name,url});
+  set("favs",favs);
+  renderFavs();
+}
+function renderFavs(){
+  favList.innerHTML="";
+  get("favs").forEach(f=>{
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`<strong>${f.name}</strong><button onclick="play('${f.url}','${f.name}')">▶</button>`;
+    favList.appendChild(div);
   });
 }
 
 renderRadios();
-renderPrograms();
 renderFavs();
-restoreLastTrack();
 </script>
 
 </body>
