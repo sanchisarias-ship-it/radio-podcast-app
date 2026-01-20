@@ -18,6 +18,8 @@ nav button.active { background:#444; }
 .card { background:white; padding:15px; border-radius:10px; margin-bottom:10px; }
 input, button { padding:10px; width:100%; margin-top:5px; }
 audio { width:100%; margin-top:10px; }
+
+.search { background:#fff; border-radius:10px; padding:10px; margin-bottom:10px; }
 </style>
 </head>
 
@@ -35,6 +37,10 @@ audio { width:100%; margin-top:10px; }
 <div id="radios" class="section active">
   <h3>📻 Mis emisoras</h3>
 
+  <div class="search">
+    <input id="searchRadios" placeholder="🔍 Buscar emisora..." onkeyup="filterRadios()">
+  </div>
+
   <div class="card">
     <input id="radioName" placeholder="Nombre de la emisora">
     <input id="radioUrl" placeholder="URL del stream (mp3)">
@@ -48,8 +54,12 @@ audio { width:100%; margin-top:10px; }
 <div id="podcasts" class="section">
   <h3>🎙️ Mis podcasts</h3>
 
+  <div class="search">
+    <input id="searchPodcasts" placeholder="🔍 Buscar por programa o episodio..." onkeyup="filterPodcasts()">
+  </div>
+
   <div class="card">
-    <input id="podcastName" placeholder="Nombre del podcast">
+    <input id="podcastName" placeholder="Nombre del programa o episodio">
     <input id="podcastAudio" placeholder="URL del episodio (mp3)">
     <button onclick="addPodcast()">➕ Añadir episodio</button>
   </div>
@@ -105,13 +115,22 @@ function loadRadios() {
 
   radios.forEach(r => {
     let div = document.createElement("div");
-    div.className = "card";
+    div.className = "card radio-item";
+    div.setAttribute("data-name", r.name.toLowerCase());
     div.innerHTML = `
       <strong>${r.name}</strong>
       <button onclick="play('${r.url}')">▶ Escuchar</button>
       <button onclick="favItem('${r.name}','${r.url}')">⭐ Favorito</button>
     `;
     list.appendChild(div);
+  });
+}
+
+function filterRadios() {
+  const search = document.getElementById("searchRadios").value.toLowerCase();
+  document.querySelectorAll(".radio-item").forEach(item => {
+    const name = item.getAttribute("data-name");
+    item.style.display = name.includes(search) ? "block" : "none";
   });
 }
 
@@ -137,13 +156,22 @@ function loadPodcasts() {
 
   podcasts.forEach(p => {
     let div = document.createElement("div");
-    div.className = "card";
+    div.className = "card podcast-item";
+    div.setAttribute("data-name", p.name.toLowerCase());
     div.innerHTML = `
       <strong>${p.name}</strong>
       <button onclick="play('${p.audio}')">▶ Escuchar</button>
       <button onclick="favItem('${p.name}','${p.audio}')">⭐ Favorito</button>
     `;
     list.appendChild(div);
+  });
+}
+
+function filterPodcasts() {
+  const search = document.getElementById("searchPodcasts").value.toLowerCase();
+  document.querySelectorAll(".podcast-item").forEach(item => {
+    const name = item.getAttribute("data-name");
+    item.style.display = name.includes(search) ? "block" : "none";
   });
 }
 
