@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Radio & Podcast App</title>
+
+<style>
+body { font-family: Arial; margin:0; background:#f2f2f2; }
+header { background:#111; color:white; padding:15px; text-align:center; }
+nav { display:flex; background:#222; }
+nav button { flex:1; padding:12px; background:#222; color:white; border:none; }
+nav button.active { background:#444; }
+
+.section { display:none; padding:15px; }
+.section.active { display:block; }
+
+.card { background:white; padding:15px; border-radius:10px; margin-bottom:10px; }
+button { padding:8px; margin-top:5px; width:100%; }
+
+audio { width:100%; margin-top:10px; }
+</style>
+</head>
+
+<body>
+
+<header>📻 Radio & Podcast App</header>
+
+<nav>
+  <button onclick="show('radios')" class="active">Radios</button>
+  <button onclick="show('podcasts')">Podcasts</button>
+  <button onclick="show('favoritos')">Favoritos</button>
+</nav>
+
+<!-- RADIOS -->
+<div id="radios" class="section active">
+  <h3>📻 Emisoras</h3>
+
+  <div class="card">
+    <strong>Los 40</strong>
+    <button onclick="play('https://20863.live.streamtheworld.com/LOS40.mp3')">▶ Escuchar</button>
+    <button onclick="fav('Los 40')">⭐ Favorito</button>
+  </div>
+
+  <div class="card">
+    <strong>Cadena SER</strong>
+    <button onclick="play('https://22433.live.streamtheworld.com/CADENASER.mp3')">▶ Escuchar</button>
+    <button onclick="fav('Cadena SER')">⭐ Favorito</button>
+  </div>
+</div>
+
+<!-- PODCASTS -->
+<div id="podcasts" class="section">
+  <h3>🎙️ Episodios</h3>
+
+  <div class="card">
+    <strong>Podcast Ejemplo 1</strong>
+    <button onclick="play('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3')">▶ Reproducir</button>
+    <button onclick="fav('Podcast Ejemplo 1')">⭐ Favorito</button>
+  </div>
+
+  <div class="card">
+    <strong>Podcast Ejemplo 2</strong>
+    <button onclick="play('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3')">▶ Reproducir</button>
+    <button onclick="fav('Podcast Ejemplo 2')">⭐ Favorito</button>
+  </div>
+</div>
+
+<!-- FAVORITOS -->
+<div id="favoritos" class="section">
+  <h3>⭐ Mis Favoritos</h3>
+  <div id="listaFavs"></div>
+</div>
+
+<!-- REPRODUCTOR -->
+<div class="section active">
+  <h3>▶ Reproductor</h3>
+  <audio id="player" controls></audio>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function play(url) {
+  const player = document.getElementById("player");
+  player.src = url;
+  player.play();
+}
+
+function fav(nombre) {
+  let favs = JSON.parse(localStorage.getItem("favs") || "[]");
+  if (!favs.includes(nombre)) {
+    favs.push(nombre);
+    localStorage.setItem("favs", JSON.stringify(favs));
+    loadFavs();
+  }
+}
+
+function loadFavs() {
+  const lista = document.getElementById("listaFavs");
+  lista.innerHTML = "";
+  let favs = JSON.parse(localStorage.getItem("favs") || "[]");
+
+  favs.forEach(f => {
+    let div = document.createElement("div");
+    div.className = "card";
+    div.textContent = f;
+    lista.appendChild(div);
+  });
+}
+
+loadFavs();
+</script>
+
+</body>
+</html>
