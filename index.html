@@ -3,13 +3,17 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>🔎 Buscador multi‑fuente de Radios & Podcasts</title>
+<title>📻🎙 App Radios & Podcasts</title>
 <style>
 :root{--bg:#0f172a;--card:#1f2937;--accent:#22c55e;--text:#e5e7eb;--muted:#9ca3af;--border:#1f2937}
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,Arial;background:linear-gradient(180deg,#020617,#0f172a);color:var(--text)}
-header{padding:16px;text-align:center;font-weight:900}
-main{padding:14px;max-width:980px;margin:auto}
+header{padding:14px;text-align:center;font-weight:900}
+nav{display:flex;gap:6px;padding:10px;position:sticky;top:0;background:#020617;z-index:10}
+nav button{flex:1;padding:10px;border-radius:14px;border:1px solid var(--border);background:#020617;color:#fff}
+nav button.active{background:linear-gradient(135deg,#22c55e,#38bdf8);color:#000;font-weight:900}
+.section{display:none;padding:14px}
+.section.active{display:block}
 .card{background:rgba(31,41,55,.9);border:1px solid var(--border);border-radius:18px;padding:14px;margin-bottom:12px}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 input,select,button{padding:12px;border-radius:14px;border:1px solid var(--border);background:#020617;color:#fff}
@@ -19,178 +23,132 @@ button.primary{background:linear-gradient(135deg,#22c55e,#38bdf8);color:#000;fon
 .actions{display:flex;gap:6px;flex-wrap:wrap}
 .muted{color:var(--muted);font-size:14px}
 .badge{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);margin-left:6px}
-.kbd{background:#020617;border:1px solid var(--border);border-radius:8px;padding:2px 6px;font-size:12px}
+.star{font-size:18px}
 </style>
 </head>
 <body>
-<header>🔎 Buscador multi‑fuente (Radios + Podcasts)</header>
-<main>
+<header>📻🎙 Buscador Profesional</header>
+
+<nav>
+  <button onclick="show('buscar')" class="active">Buscar</button>
+  <button onclick="show('favradios')">⭐ Radios fav</button>
+  <button onclick="show('favpodcasts')">⭐ Podcasts fav</button>
+</nav>
+
+<div id="buscar" class="section active">
   <div class="card">
-    <h3>Buscar en varias fuentes a la vez</h3>
+    <h3>🔎 Búsqueda multi-fuente</h3>
     <div class="row">
-      <input id="q" placeholder="Ej: SER Valencia, COPE Alicante, rock Elche, historia España..." style="flex:1">
+      <input id="q" placeholder="SER Valencia, COPE Alicante, rock Elche...">
       <select id="type">
         <option value="all">Todo</option>
-        <option value="radio">Solo radios</option>
-        <option value="podcast">Solo podcasts</option>
+        <option value="radio">Radios</option>
+        <option value="podcast">Podcasts</option>
       </select>
-      <button class="primary" onclick="searchAll()">Buscar</button>
+      <button class="primary" onclick="search()">Buscar</button>
     </div>
-    <p class="muted">Fuentes: Radio‑Browser, Apple Podcasts, Podcast Index (mirror), Listen Notes (mirror), iVoox (mirror).</p>
+    <p class="muted">Usa emisora + ciudad para encontrar contenido local.</p>
   </div>
 
   <div class="card">
     <h3>Resultados</h3>
-    <div id="status" class="muted">Introduce una búsqueda.</div>
     <div id="results" class="list"></div>
   </div>
-</main>
+</div>
+
+<div id="favradios" class="section">
+  <div class="card">
+    <h3>⭐ Emisoras favoritas</h3>
+    <div id="radiosFavList" class="list"></div>
+  </div>
+</div>
+
+<div id="favpodcasts" class="section">
+  <div class="card">
+    <h3>⭐ Podcasts favoritos</h3>
+    <div id="podFavList" class="list"></div>
+  </div>
+</div>
 
 <script>
-// CORS-friendly proxies / mirrors (public). For máxima fiabilidad, usa tu propio backend.
-const ALLORIGINS = "https://api.allorigins.win/raw?url=";
-const RSSHUB = "https://rsshub.app"; // mirror público (puede variar en disponibilidad)
+// 👉 Pega aquí la URL de tu backend desplegado
+const API = "https://TU-WORKER.AQUI.workers.dev/search";
 
-const resultsEl = document.getElementById("results");
-const statusEl = document.getElementById("status");
+const get=(k,d=[])=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
+const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 
-function el(html){
-  const d=document.createElement("div");
-  d.innerHTML=html.trim();
-  return d.firstChild;
+function show(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
 }
 
-function addResult({title, subtitle, url, source, playUrl}){
-  const item = el(`
-    <div class="item">
-      <strong>${title}</strong>
-      <span class="badge">${source}</span>
-      ${subtitle?`<p class="muted">${subtitle}</p>`:""}
-      <div class="actions">
-        ${playUrl?`<button onclick="play('${playUrl.replace(/'/g,"")}','${title.replace(/'/g,"")}')">▶ Reproducir</button>`:""}
-        <a href="${url}" target="_blank"><button>🌐 Abrir</button></a>
-      </div>
-    </div>`);
-  resultsEl.appendChild(item);
-}
-
-function play(url,title){
-  const audio = new Audio(url);
-  audio.play();
-}
-
-async function searchAll(){
+async function search(){
   const q = document.getElementById("q").value.trim();
   const type = document.getElementById("type").value;
   if(!q) return;
-
-  resultsEl.innerHTML = "";
-  statusEl.textContent = "Buscando en varias fuentes…";
-
-  const tasks = [];
-  if(type==="all" || type==="radio") tasks.push(searchRadios(q));
-  if(type==="all" || type==="podcast"){
-    tasks.push(searchApple(q));
-    tasks.push(searchPodcastIndex(q));
-    tasks.push(searchListenNotes(q));
-    tasks.push(searchIVoox(q));
+  results.innerHTML = "<div class='muted'>Buscando…</div>";
+  try{
+    const res = await fetch(API + "?q=" + encodeURIComponent(q) + "&type=" + type);
+    const data = await res.json();
+    results.innerHTML = "";
+    data.results.forEach(r => {
+      const key = r.type==="radio" ? "favRadios" : "favPods";
+      const favs = get(key);
+      const isFav = favs.some(f => f.title === r.title);
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `
+        <strong>${r.title}</strong>
+        <span class="badge">${r.source}</span>
+        <p class="muted">${r.subtitle || ""}</p>
+        <div class="actions">
+          ${r.playUrl?`<button onclick="play('${r.playUrl}')">▶</button>`:""}
+          <button class="star" onclick="toggleFav('${r.type}', ${JSON.stringify(r).replace(/"/g,'&quot;')})">
+            ${isFav?'⭐':'☆'}
+          </button>
+        </div>`;
+      results.appendChild(div);
+    });
+  }catch{
+    results.innerHTML = "<div class='muted'>Error conectando al backend.</div>";
   }
-
-  await Promise.allSettled(tasks);
-  statusEl.textContent = "Resultados combinados de varias fuentes.";
 }
 
-/* ================== RADIOS (Radio-Browser) ================== */
-async function searchRadios(q){
-  try{
-    const url = ALLORIGINS + encodeURIComponent(
-      "https://de1.api.radio-browser.info/json/stations/search?name=" + q + "&tag=" + q + "&country=" + q + "&limit=20"
-    );
-    const res = await fetch(url);
-    const data = await res.json();
-    data.forEach(r=> addResult({
-      title: r.name,
-      subtitle: (r.country||"") + " " + (r.state||""),
-      url: r.homepage || r.url,
-      playUrl: r.url,
-      source: "Radio-Browser"
-    }));
-  }catch(e){}
+function toggleFav(type,obj){
+  const key = type==="radio" ? "favRadios" : "favPods";
+  let arr = get(key);
+  const i = arr.findIndex(x=>x.title===obj.title);
+  if(i>=0) arr.splice(i,1);
+  else arr.push(obj);
+  set(key,arr);
+  renderFavs();
+  search();
 }
 
-/* ================== APPLE PODCASTS ================== */
-async function searchApple(q){
-  try{
-    const url = ALLORIGINS + encodeURIComponent(
-      "https://itunes.apple.com/search?media=podcast&term=" + q + "&limit=20"
-    );
-    const res = await fetch(url);
-    const data = await res.json();
-    data.results.forEach(p=> addResult({
-      title: p.collectionName,
-      subtitle: p.artistName || "",
-      url: p.collectionViewUrl,
-      source: "Apple Podcasts"
-    }));
-  }catch(e){}
+function renderFavs(){
+  radiosFavList.innerHTML="";
+  podFavList.innerHTML="";
+  get("favRadios").forEach(r=>{
+    const d=document.createElement("div");
+    d.className="item";
+    d.innerHTML=`<strong>${r.title}</strong><span class="badge">${r.source}</span>
+    <div class="actions"><button onclick="play('${r.playUrl}')">▶</button></div>`;
+    radiosFavList.appendChild(d);
+  });
+  get("favPods").forEach(p=>{
+    const d=document.createElement("div");
+    d.className="item";
+    d.innerHTML=`<strong>${p.title}</strong><span class="badge">${p.source}</span>
+    <p class="muted">${p.subtitle||""}</p>`;
+    podFavList.appendChild(d);
+  });
 }
 
-/* ================== PODCAST INDEX (mirror) ================== */
-async function searchPodcastIndex(q){
-  try{
-    const url = ALLORIGINS + encodeURIComponent(
-      "https://api.podcastindex.org/api/1.0/search/byterm?q=" + q
-    );
-    const res = await fetch(url);
-    const data = await res.json();
-    (data.feeds||[]).slice(0,15).forEach(p=> addResult({
-      title: p.title,
-      subtitle: p.author || "",
-      url: p.link || p.url,
-      source: "Podcast Index"
-    }));
-  }catch(e){}
-}
+function play(url){ new Audio(url).play(); }
 
-/* ================== LISTEN NOTES (via RSSHub search mirror) ================== */
-async function searchListenNotes(q){
-  try{
-    const url = ALLORIGINS + encodeURIComponent(
-      RSSHUB + "/listennotes/search/" + encodeURIComponent(q)
-    );
-    const res = await fetch(url);
-    const text = await res.text();
-    const xml = new DOMParser().parseFromString(text,"text/xml");
-    [...xml.querySelectorAll("item")].slice(0,10).forEach(i=>{
-      addResult({
-        title: i.querySelector("title")?.textContent || "Podcast",
-        subtitle: i.querySelector("description")?.textContent?.slice(0,80) || "",
-        url: i.querySelector("link")?.textContent || "#",
-        source: "Listen Notes"
-      });
-    });
-  }catch(e){}
-}
-
-/* ================== IVOOX (via RSSHub search mirror) ================== */
-async function searchIVoox(q){
-  try{
-    const url = ALLORIGINS + encodeURIComponent(
-      RSSHUB + "/ivoox/search/" + encodeURIComponent(q)
-    );
-    const res = await fetch(url);
-    const text = await res.text();
-    const xml = new DOMParser().parseFromString(text,"text/xml");
-    [...xml.querySelectorAll("item")].slice(0,10).forEach(i=>{
-      addResult({
-        title: i.querySelector("title")?.textContent || "Programa iVoox",
-        subtitle: "iVoox",
-        url: i.querySelector("link")?.textContent || "#",
-        source: "iVoox"
-      });
-    });
-  }catch(e){}
-}
+renderFavs();
 </script>
 </body>
 </html>
