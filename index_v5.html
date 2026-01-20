@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🎧 Radio & Podcast App</title>
+
+<style>
+:root {
+  --bg:#0f172a; --panel:#111827; --card:#1f2937;
+  --accent:#22c55e; --accent2:#38bdf8; --text:#e5e7eb;
+  --muted:#9ca3af; --danger:#ef4444; --ok:#10b981;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,Arial;background:linear-gradient(180deg,#020617,#0f172a);color:var(--text)}
+header{padding:16px;text-align:center;font-weight:800;background:rgba(2,6,23,.7);position:sticky;top:0;backdrop-filter:blur(6px);z-index:10}
+nav{display:flex;gap:6px;padding:10px;background:rgba(2,6,23,.7);position:sticky;top:56px;z-index:9}
+nav button{flex:1;padding:12px;border-radius:14px;border:1px solid #1f2937;background:#020617;color:#fff}
+nav button.active{background:linear-gradient(135deg,#22c55e,#38bdf8);color:#000;font-weight:800}
+.section{display:none;padding:14px}
+.section.active{display:block}
+.card{background:rgba(31,41,55,.85);border:1px solid #1f2937;border-radius:18px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,select,button{padding:12px;border-radius:14px;border:1px solid #1f2937;background:#020617;color:#fff}
+button.primary{background:linear-gradient(135deg,#22c55e,#38bdf8);color:#000;font-weight:800}
+button.danger{background:#160a0a;border-color:#3f1d1d;color:#fecaca}
+button.ghost{background:transparent}
+.list{display:grid;gap:10px}
+.item{background:#020617;border:1px solid #1f2937;border-radius:16px;padding:12px}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.muted{color:var(--muted);font-size:14px}
+.group{border:1px dashed #1f2937;border-radius:16px;padding:10px;margin-bottom:10px}
+.episode{background:#020617;border:1px solid #1f2937;border-radius:14px;padding:10px;margin-top:8px}
+.player{position:sticky;bottom:0;background:rgba(2,6,23,.95);padding:12px;border-top:1px solid #1f2937}
+audio{width:100%}
+.star{font-size:18px}
+.badge{padding:2px 8px;border-radius:999px;font-size:12px;background:#7c2d12}
+.badge.ok{background:#064e3b}
+</style>
+</head>
+<body>
+
+<header>🎧 Radio & Podcast App</header>
+
+<nav>
+  <button onclick="show('radios')" class="active">Radios</button>
+  <button onclick="show('podcasts')">Podcasts</button>
+  <button onclick="show('descargas')">Descargados</button>
+  <button onclick="show('favoritos')">Favoritos</button>
+</nav>
+
+<!-- RADIOS -->
+<div id="radios" class="section active">
+  <div class="card">
+    <h3>🔍 Búsqueda potente de radios</h3>
+    <div class="row">
+      <input id="radioQuery" placeholder="Ej: SER Valencia, rock Alicante, Los 40 Elche">
+      <select id="radioMode">
+        <option value="smart">Búsqueda inteligente</option>
+        <option value="name">Por nombre</option>
+        <option value="tag">Por temática</option>
+        <option value="country">Por país</option>
+        <option value="city">Por ciudad</option>
+      </select>
+      <button class="primary" onclick="searchRadios()">Buscar</button>
+    </div>
+    <p class="muted">Consejo: prueba búsquedas como “SER Valencia”, “COPE Alicante”, “radio local Elche”.</p>
+    <div id="radioResults" class="list"></div>
+  </div>
+
+  <div class="card">
+    <h3>📻 Guardadas</h3>
+    <div id="savedRadios" class="list"></div>
+  </div>
+</div>
+
+<!-- PODCASTS -->
+<div id="podcasts" class="section">
+  <div class="card">
+    <h3>🔍 Búsqueda avanzada de podcasts</h3>
+    <div class="row">
+      <input id="podcastQuery" placeholder="Ej: SER Valencia, COPE Alicante, podcast local">
+      <select id="podcastLimit">
+        <option value="10">10 resultados</option>
+        <option value="25">25 resultados</option>
+        <option value="50">50 resultados</option>
+      </select>
+      <button class="primary" onclick="searchPodcasts()">Buscar</button>
+    </div>
+    <p class="muted">Busca por emisora + ciudad para encontrar programas locales.</p>
+    <div id="podcastResults" class="list"></div>
+  </div>
+
+  <div class="card">
+    <h3>🎙️ Mis programas</h3>
+    <div id="programList"></div>
+  </div>
+</div>
+
+<!-- DESCARGAS -->
+<div id="descargas" class="section">
+  <div class="card">
+    <h3>⬇ Descargados</h3>
+    <div id="downloadsList" class="list"></div>
+  </div>
+</div>
+
+<!-- FAVORITOS -->
+<div id="favoritos" class="section">
+  <div class="card">
+    <h3>⭐ Favoritos</h3>
+    <div id="favList" class="list"></div>
+  </div>
+</div>
+
+<div class="player">
+  <div id="playerTitle"><strong>Nada en reproducción</strong></div>
+  <audio id="player" controls></audio>
+</div>
+
+<script>
+const proxy = "https://api.allorigins.win/raw?url=";
+
+function show(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+const player=document.getElementById("player");
+function play(url,title){
+  document.getElementById("playerTitle").innerHTML="<strong>"+title+"</strong>";
+  player.src=url; player.play();
+}
+
+/* Storage */
+const get=(k,d=[])=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
+const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+/* RADIOS - búsqueda avanzada */
+async function searchRadios(){
+  const q = radioQuery.value.trim();
+  const mode = radioMode.value;
+  if(!q) return;
+  radioResults.innerHTML="<div class='muted'>Buscando en directorios internacionales...</div>";
+
+  let endpoint = "";
+  if(mode==="name") endpoint = "name=" + q;
+  else if(mode==="tag") endpoint = "tag=" + q;
+  else if(mode==="country") endpoint = "country=" + q;
+  else if(mode==="city") endpoint = "state=" + q;
+  else endpoint = "name=" + q + "&tag=" + q + "&country=" + q;
+
+  try{
+    const url = proxy + encodeURIComponent("https://de1.api.radio-browser.info/json/stations/search?" + endpoint + "&limit=30");
+    const res = await fetch(url);
+    const data = await res.json();
+    radioResults.innerHTML="";
+    if(data.length===0){
+      radioResults.innerHTML="<div class='muted'>No se encontraron resultados. Prueba otra combinación.</div>";
+      return;
+    }
+    data.forEach(r=>{
+      const div=document.createElement("div");
+      div.className="item";
+      div.innerHTML=`
+        <strong>${r.name}</strong>
+        <p class="muted">${r.country || ""} ${r.state || ""}</p>
+        <div class="actions">
+          <button onclick="play('${r.url}','${r.name}')">▶</button>
+          <button onclick="saveRadio('${r.name}','${r.url}')">💾</button>
+        </div>`;
+      radioResults.appendChild(div);
+    });
+  }catch{
+    radioResults.innerHTML="<div class='muted'>Error al buscar radios.</div>";
+  }
+}
+
+/* PODCASTS - búsqueda más amplia */
+async function searchPodcasts(){
+  const q = podcastQuery.value.trim();
+  const limit = podcastLimit.value;
+  if(!q) return;
+  podcastResults.innerHTML="<div class='muted'>Buscando podcasts en catálogos globales...</div>";
+  try{
+    const url = proxy + encodeURIComponent("https://itunes.apple.com/search?media=podcast&term=" + q + "&limit=" + limit);
+    const res = await fetch(url);
+    const data = await res.json();
+    podcastResults.innerHTML="";
+    if(data.results.length===0){
+      podcastResults.innerHTML="<div class='muted'>No se encontraron podcasts con esa búsqueda.</div>";
+      return;
+    }
+    data.results.forEach(p=>{
+      const div=document.createElement("div");
+      div.className="item";
+      div.innerHTML=`
+        <strong>${p.collectionName}</strong>
+        <p class="muted">${p.artistName || ""}</p>
+        <button onclick="addProgram('${p.feedUrl.replace(/'/g,"")}','${p.collectionName.replace(/'/g,"")}')">➕ Añadir programa</button>`;
+      podcastResults.appendChild(div);
+    });
+  }catch{
+    podcastResults.innerHTML="<div class='muted'>Error al buscar podcasts.</div>";
+  }
+}
+
+/* Podcasts guardados y carga RSS */
+function addProgram(feedUrl,name){
+  const programs=get("programs");
+  if(programs.find(p=>p.feedUrl===feedUrl)) return;
+  programs.push({name,feedUrl,episodes:[]});
+  set("programs",programs);
+  loadEpisodes(feedUrl);
+}
+
+async function loadEpisodes(feedUrl){
+  try{
+    const res=await fetch(proxy+encodeURIComponent(feedUrl));
+    const text=await res.text();
+    const xml=new DOMParser().parseFromString(text,"text/xml");
+    const items=[...xml.querySelectorAll("item")].slice(0,20);
+    const programs=get("programs");
+    const p=programs.find(x=>x.feedUrl===feedUrl);
+    p.episodes=items.map(i=>({
+      title:i.querySelector("title")?.textContent||"Episodio",
+      url:i.querySelector("enclosure")?.getAttribute("url")
+    })).filter(e=>e.url);
+    set("programs",programs);
+    renderPrograms();
+  }catch{}
+}
+
+function renderPrograms(){
+  programList.innerHTML="";
+  get("programs").forEach(p=>{
+    const group=document.createElement("div");
+    group.className="group";
+    group.innerHTML=`<strong>${p.name}</strong>`;
+    p.episodes.forEach(e=>{
+      const ep=document.createElement("div");
+      ep.className="episode";
+      ep.innerHTML=`<strong>${e.title}</strong>
+        <div class='actions'>
+          <button onclick="play('${e.url}','${e.title}')">▶</button>
+        </div>`;
+      group.appendChild(ep);
+    });
+    programList.appendChild(group);
+  });
+}
+
+/* Guardadas */
+function saveRadio(name,url){
+  const radios=get("radios");
+  if(!radios.find(r=>r.url===url)){
+    radios.push({name,url});
+    set("radios",radios);
+    renderSavedRadios();
+  }
+}
+function renderSavedRadios(){
+  savedRadios.innerHTML="";
+  get("radios").forEach(r=>{
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`<strong>${r.name}</strong>
+      <div class='actions'>
+        <button onclick="play('${r.url}','${r.name}')">▶</button>
+      </div>`;
+    savedRadios.appendChild(div);
+  });
+}
+
+/* Favoritos */
+function renderFavs(){
+  favList.innerHTML="";
+  get("favs").forEach(f=>{
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`<strong>${f.name}</strong>`;
+    favList.appendChild(div);
+  });
+}
+
+renderPrograms();
+renderSavedRadios();
+renderFavs();
+</script>
+
+</body>
+</html>
