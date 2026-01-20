@@ -16,8 +16,7 @@ nav button.active { background:#444; }
 .section.active { display:block; }
 
 .card { background:white; padding:15px; border-radius:10px; margin-bottom:10px; }
-button { padding:8px; margin-top:5px; width:100%; }
-
+input, button { padding:10px; width:100%; margin-top:5px; }
 audio { width:100%; margin-top:10px; }
 </style>
 </head>
@@ -34,42 +33,34 @@ audio { width:100%; margin-top:10px; }
 
 <!-- RADIOS -->
 <div id="radios" class="section active">
-  <h3>📻 Emisoras</h3>
+  <h3>📻 Mis emisoras</h3>
 
   <div class="card">
-    <strong>Los 40</strong>
-    <button onclick="play('https://20863.live.streamtheworld.com/LOS40.mp3')">▶ Escuchar</button>
-    <button onclick="fav('Los 40')">⭐ Favorito</button>
+    <input id="radioName" placeholder="Nombre de la emisora">
+    <input id="radioUrl" placeholder="URL del stream (mp3)">
+    <button onclick="addRadio()">➕ Añadir emisora</button>
   </div>
 
-  <div class="card">
-    <strong>Cadena SER</strong>
-    <button onclick="play('https://22433.live.streamtheworld.com/CADENASER.mp3')">▶ Escuchar</button>
-    <button onclick="fav('Cadena SER')">⭐ Favorito</button>
-  </div>
+  <div id="radioList"></div>
 </div>
 
 <!-- PODCASTS -->
 <div id="podcasts" class="section">
-  <h3>🎙️ Episodios</h3>
+  <h3>🎙️ Mis podcasts</h3>
 
   <div class="card">
-    <strong>Podcast Ejemplo 1</strong>
-    <button onclick="play('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3')">▶ Reproducir</button>
-    <button onclick="fav('Podcast Ejemplo 1')">⭐ Favorito</button>
+    <input id="podcastName" placeholder="Nombre del podcast">
+    <input id="podcastAudio" placeholder="URL del episodio (mp3)">
+    <button onclick="addPodcast()">➕ Añadir episodio</button>
   </div>
 
-  <div class="card">
-    <strong>Podcast Ejemplo 2</strong>
-    <button onclick="play('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3')">▶ Reproducir</button>
-    <button onclick="fav('Podcast Ejemplo 2')">⭐ Favorito</button>
-  </div>
+  <div id="podcastList"></div>
 </div>
 
 <!-- FAVORITOS -->
 <div id="favoritos" class="section">
-  <h3>⭐ Mis Favoritos</h3>
-  <div id="listaFavs"></div>
+  <h3>⭐ Favoritos</h3>
+  <div id="favList"></div>
 </div>
 
 <!-- REPRODUCTOR -->
@@ -92,28 +83,98 @@ function play(url) {
   player.play();
 }
 
-function fav(nombre) {
+// RADIOS
+function addRadio() {
+  const name = document.getElementById("radioName").value;
+  const url = document.getElementById("radioUrl").value;
+  if (!name || !url) return;
+
+  let radios = JSON.parse(localStorage.getItem("radios") || "[]");
+  radios.push({name, url});
+  localStorage.setItem("radios", JSON.stringify(radios));
+
+  document.getElementById("radioName").value = "";
+  document.getElementById("radioUrl").value = "";
+  loadRadios();
+}
+
+function loadRadios() {
+  const list = document.getElementById("radioList");
+  list.innerHTML = "";
+  let radios = JSON.parse(localStorage.getItem("radios") || "[]");
+
+  radios.forEach(r => {
+    let div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <strong>${r.name}</strong>
+      <button onclick="play('${r.url}')">▶ Escuchar</button>
+      <button onclick="favItem('${r.name}','${r.url}')">⭐ Favorito</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+// PODCASTS
+function addPodcast() {
+  const name = document.getElementById("podcastName").value;
+  const audio = document.getElementById("podcastAudio").value;
+  if (!name || !audio) return;
+
+  let podcasts = JSON.parse(localStorage.getItem("podcasts") || "[]");
+  podcasts.push({name, audio});
+  localStorage.setItem("podcasts", JSON.stringify(podcasts));
+
+  document.getElementById("podcastName").value = "";
+  document.getElementById("podcastAudio").value = "";
+  loadPodcasts();
+}
+
+function loadPodcasts() {
+  const list = document.getElementById("podcastList");
+  list.innerHTML = "";
+  let podcasts = JSON.parse(localStorage.getItem("podcasts") || "[]");
+
+  podcasts.forEach(p => {
+    let div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <strong>${p.name}</strong>
+      <button onclick="play('${p.audio}')">▶ Escuchar</button>
+      <button onclick="favItem('${p.name}','${p.audio}')">⭐ Favorito</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+// FAVORITOS
+function favItem(name, url) {
   let favs = JSON.parse(localStorage.getItem("favs") || "[]");
-  if (!favs.includes(nombre)) {
-    favs.push(nombre);
+  if (!favs.find(f => f.name === name)) {
+    favs.push({name, url});
     localStorage.setItem("favs", JSON.stringify(favs));
     loadFavs();
   }
 }
 
 function loadFavs() {
-  const lista = document.getElementById("listaFavs");
-  lista.innerHTML = "";
+  const list = document.getElementById("favList");
+  list.innerHTML = "";
   let favs = JSON.parse(localStorage.getItem("favs") || "[]");
 
   favs.forEach(f => {
     let div = document.createElement("div");
     div.className = "card";
-    div.textContent = f;
-    lista.appendChild(div);
+    div.innerHTML = `
+      <strong>${f.name}</strong>
+      <button onclick="play('${f.url}')">▶ Escuchar</button>
+    `;
+    list.appendChild(div);
   });
 }
 
+loadRadios();
+loadPodcasts();
 loadFavs();
 </script>
 
