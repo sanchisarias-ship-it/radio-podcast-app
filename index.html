@@ -178,6 +178,18 @@ audio { width: 100%; }
 
 <!-- PODCASTS -->
 <div id="podcasts" class="section">
+  <!-- NUEVO: AÑADIR PODCAST RÁPIDO (igual que radios) -->
+  <div class="card">
+    <h3>➕ Añadir podcast (rápido)</h3>
+    <div class="row">
+      <input id="quickProgram" placeholder="Nombre del programa">
+      <input id="quickTitle" placeholder="Título del episodio">
+      <input id="quickUrl" placeholder="URL del episodio (mp3)">
+      <button class="primary" onclick="quickAddPodcast()">Añadir</button>
+    </div>
+    <p class="muted small">Esto crea automáticamente el programa si no existe.</p>
+  </div>
+
   <div class="card">
     <h3>🎙️ Podcasts (por programas)</h3>
 
@@ -222,12 +234,10 @@ audio { width: 100%; }
 </div>
 
 <script>
-/* PWA SERVICE WORKER */
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw.js");
 }
 
-/* BASIC NAV */
 function show(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -235,7 +245,6 @@ function show(id) {
   event.target.classList.add('active');
 }
 
-/* PLAYER */
 const player = document.getElementById("player");
 
 function play(url, title, sub) {
@@ -243,7 +252,6 @@ function play(url, title, sub) {
   document.getElementById("playerSub").innerText = sub || "";
   player.src = url;
   player.play();
-
   saveLastTrack(url, title, sub);
 }
 
@@ -252,7 +260,6 @@ function setSpeed() {
   localStorage.setItem("playbackRate", speedControl.value);
 }
 
-/* RESUME PLAYBACK */
 player.addEventListener("timeupdate", () => {
   if (player.src) {
     localStorage.setItem("lastTime_" + player.src, player.currentTime);
@@ -281,7 +288,6 @@ function restoreLastTrack() {
   }
 }
 
-/* STORAGE HELPERS */
 const get = (k, d=[]) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d));
 const set = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 
@@ -290,7 +296,6 @@ function addRadio() {
   const name = radioName.value.trim();
   const url = radioUrl.value.trim();
   if (!name || !url) return;
-
   const radios = get("radios");
   radios.push({id: Date.now(), name, url, created: Date.now()});
   set("radios", radios);
@@ -310,14 +315,10 @@ function renderRadios() {
   const list = document.getElementById("radioList");
   const search = document.getElementById("searchRadios").value.toLowerCase();
   const sort = document.getElementById("radioSort").value;
-
   let radios = get("radios");
   radios = radios.filter(r => r.name.toLowerCase().includes(search));
-
   radios.sort((a,b) => sort === "name" ? a.name.localeCompare(b.name) : b.created - a.created);
-
   list.innerHTML = "";
-
   radios.forEach(r => {
     const div = document.createElement("div");
     div.className = "item";
@@ -327,17 +328,15 @@ function renderRadios() {
         <button onclick="play('${r.url}','${r.name}','Radio en directo')">▶</button>
         <button onclick="favItem('${r.name}','${r.url}')">⭐</button>
         <button class="danger" onclick="deleteRadio(${r.id})">🗑</button>
-      </div>
-    `;
+      </div>`;
     list.appendChild(div);
   });
 }
 
-/* PODCAST PROGRAMS */
+/* PODCASTS */
 function addProgram() {
   const name = programName.value.trim();
   if (!name) return;
-
   const programs = get("programs");
   programs.push({id: Date.now(), name, episodes: []});
   set("programs", programs);
@@ -345,11 +344,32 @@ function addProgram() {
   renderPrograms();
 }
 
+function quickAddPodcast() {
+  const prog = quickProgram.value.trim();
+  const title = quickTitle.value.trim();
+  const url = quickUrl.value.trim();
+  if (!prog || !title || !url) return;
+
+  const programs = get("programs");
+  let p = programs.find(x => x.name.toLowerCase() === prog.toLowerCase());
+  if (!p) {
+    p = {id: Date.now(), name: prog, episodes: []};
+    programs.push(p);
+  }
+  p.episodes.push({id: Date.now(), title, url, created: Date.now()});
+  set("programs", programs);
+
+  quickProgram.value = "";
+  quickTitle.value = "";
+  quickUrl.value = "";
+
+  renderPrograms();
+}
+
 function addEpisode(programId) {
   const title = document.getElementById("epTitle_"+programId).value.trim();
   const url = document.getElementById("epUrl_"+programId).value.trim();
   if (!title || !url) return;
-
   const programs = get("programs");
   const p = programs.find(x => x.id === programId);
   p.episodes.push({id: Date.now(), title, url, created: Date.now()});
@@ -376,47 +396,39 @@ function renderPrograms() {
   const wrap = document.getElementById("programList");
   const search = document.getElementById("searchPodcasts").value.toLowerCase();
   const programs = get("programs");
-
   wrap.innerHTML = "";
 
   programs.forEach(p => {
     const matchesProgram = p.name.toLowerCase().includes(search);
     const epMatches = p.episodes.filter(e => e.title.toLowerCase().includes(search));
-
     if (!matchesProgram && epMatches.length === 0 && search !== "") return;
 
     const group = document.createElement("div");
     group.className = "group";
-
     group.innerHTML = `
       <div class="group-title">
         <span>${p.name}</span>
         <button class="danger small" onclick="deleteProgram(${p.id})">Eliminar programa</button>
       </div>
-
       <div class="card">
         <input id="epTitle_${p.id}" placeholder="Título del episodio">
         <input id="epUrl_${p.id}" placeholder="URL del episodio (mp3)">
         <button class="primary" onclick="addEpisode(${p.id})">Añadir episodio</button>
-      </div>
-    `;
+      </div>`;
 
-    p.episodes
-      .sort((a,b)=> b.created - a.created)
-      .forEach(e => {
-        const ep = document.createElement("div");
-        ep.className = "episode";
-        ep.innerHTML = `
-          <strong>${e.title}</strong>
-          <div class="actions">
-            <button onclick="play('${e.url}','${e.title}','${p.name}')">▶</button>
-            <button onclick="favItem('${e.title}','${e.url}')">⭐</button>
-            <button class="danger" onclick="deleteEpisode(${p.id},${e.id})">🗑</button>
-            <button onclick="downloadEpisode('${e.url}')">⬇ Descargar</button>
-          </div>
-        `;
-        group.appendChild(ep);
-      });
+    p.episodes.sort((a,b)=> b.created - a.created).forEach(e => {
+      const ep = document.createElement("div");
+      ep.className = "episode";
+      ep.innerHTML = `
+        <strong>${e.title}</strong>
+        <div class="actions">
+          <button onclick="play('${e.url}','${e.title}','${p.name}')">▶</button>
+          <button onclick="favItem('${e.title}','${e.url}')">⭐</button>
+          <button class="danger" onclick="deleteEpisode(${p.id},${e.id})">🗑</button>
+          <button onclick="downloadEpisode('${e.url}')">⬇ Descargar</button>
+        </div>`;
+      group.appendChild(ep);
+    });
 
     wrap.appendChild(group);
   });
@@ -436,34 +448,25 @@ function renderFavs() {
   const list = document.getElementById("favList");
   const favs = get("favs");
   list.innerHTML = "";
-
   favs.forEach(f => {
     const div = document.createElement("div");
     div.className = "item";
     div.innerHTML = `
       <h4>${f.name}</h4>
-      <button onclick="play('${f.url}','${f.name}','Favorito')">▶ Escuchar</button>
-    `;
+      <button onclick="play('${f.url}','${f.name}','Favorito')">▶ Escuchar</button>`;
     list.appendChild(div);
   });
 }
 
-/* OFFLINE DOWNLOAD */
 async function downloadEpisode(url) {
   if (!navigator.serviceWorker.controller) {
     alert("Recarga la app para activar descargas offline.");
     return;
   }
-
-  navigator.serviceWorker.controller.postMessage({
-    action: "cache-audio",
-    url: url
-  });
-
+  navigator.serviceWorker.controller.postMessage({ action: "cache-audio", url });
   alert("Episodio guardado para escuchar sin conexión.");
 }
 
-/* INIT */
 renderRadios();
 renderPrograms();
 renderFavs();
