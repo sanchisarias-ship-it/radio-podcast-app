@@ -37,9 +37,10 @@ button.small{padding:6px 12px;font-size:12px}
 .badge{background:var(--accent);color:#000;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:800}
 .player{position:sticky;bottom:0;background:#000;border-top:1px solid var(--border);padding:12px}
 audio{width:100%}
-details summary{cursor:pointer;color:#d4d4d8;margin-bottom:6px}
 .programHeader{display:flex;align-items:center;gap:6px}
 .programHeader strong{flex:1}
+.loading{color:#facc15;font-size:13px}
+.error{color:#fca5a5;font-size:13px}
 </style>
 </head>
 <body>
@@ -58,10 +59,7 @@ details summary{cursor:pointer;color:#d4d4d8;margin-bottom:6px}
       <input id="podQ" placeholder="Buscar podcast..." style="flex:1">
       <button class="primary" onclick="searchPods()">Buscar</button>
     </div>
-    <details id="searchBox" open>
-      <summary>Resultados</summary>
-      <div id="podResults" class="list"></div>
-    </details>
+    <div id="podResults" class="list"></div>
   </div>
 
   <div class="card">
@@ -90,10 +88,15 @@ details summary{cursor:pointer;color:#d4d4d8;margin-bottom:6px}
 </div>
 
 <script>
-const PROXY = "https://api.allorigins.win/raw?url=";
 const player = document.getElementById("player");
 const store=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const load=(k,d=[])=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
+const esc = s => String(s||"").replace(/'/g,"");
+
+const PROXIES = [
+  url => "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
+  url => "https://cors.isomorphic-git.org/" + url
+];
 
 function show(id,btn){
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
@@ -104,13 +107,13 @@ function show(id,btn){
 
 function play(url,title,id){
   player.src=url;
-  player.play();
+  player.play().catch(()=>{});
   document.getElementById("playerTitle").textContent=title;
   if(id) localStorage.setItem("played_"+id,"1");
   renderPrograms();
 }
 
-/* ========== BUSCADOR ========== */
+/* ===== BUSCADOR ===== */
 async function searchPods(){
   const q = podQ.value.trim(); if(!q) return;
   podResults.innerHTML="<div class='muted'>Buscando…</div>";
@@ -126,7 +129,7 @@ async function searchPods(){
     div.className="item";
     div.innerHTML=`<strong>${p.title}</strong>
       <p class="muted">${p.author||""}</p>
-      <button ${added?"disabled":""} onclick="addProgram('${p.feedUrl}','${p.title.replace(/'/g,"")}')">
+      <button ${added?"disabled":""} onclick="addProgram('${esc(p.feedUrl)}','${esc(p.title)}')">
         ${added?"✔ Añadido":"➕ Añadir a mis programas"}
       </button>`;
     podResults.appendChild(div);
@@ -135,63 +138,86 @@ async function searchPods(){
 
 async function searchApple(q,arr){
   try{
-    const res = await fetch(PROXY+encodeURIComponent("https://itunes.apple.com/search?media=podcast&term="+q+"&limit=20"));
+    const res = await fetch("https://api.allorigins.win/raw?url="+encodeURIComponent("https://itunes.apple.com/search?media=podcast&term="+q+"&limit=20"));
     const data = await res.json();
     data.results.forEach(p=>p.feedUrl && arr.push({title:p.collectionName,author:p.artistName,feedUrl:p.feedUrl}));
   }catch{}
 }
 async function searchPI(q,arr){
   try{
-    const res = await fetch(PROXY+encodeURIComponent("https://api.podcastindex.org/api/1.0/search/byterm?q="+q));
+    const res = await fetch("https://api.allorigins.win/raw?url="+encodeURIComponent("https://api.podcastindex.org/api/1.0/search/byterm?q="+q));
     const data = await res.json();
     (data.feeds||[]).slice(0,20).forEach(p=>p.url && arr.push({title:p.title,author:p.author,feedUrl:p.url}));
   }catch{}
 }
 async function searchFyyd(q,arr){
   try{
-    const res = await fetch(PROXY+encodeURIComponent("https://api.fyyd.de/0.2/search/podcast?term="+q));
+    const res = await fetch("https://api.allorigins.win/raw?url="+encodeURIComponent("https://api.fyyd.de/0.2/search/podcast?term="+q));
     const data = await res.json();
     (data.data||[]).slice(0,15).forEach(p=>p.xmlURL && arr.push({title:p.title,author:p.author,feedUrl:p.xmlURL}));
   }catch{}
 }
 
-/* ========== PROGRAMAS ========== */
+/* ===== PROGRAMAS ===== */
 function addProgram(feedUrl,title){
   let programs = load("programs");
   if(programs.some(p=>p.feedUrl===feedUrl)) return;
-  programs.push({title,feedUrl,episodes:[],open:true,newCount:0});
+  programs.push({title,feedUrl,episodes:[],open:true,loading:true,error:false});
   store("programs",programs);
-  loadEpisodes(feedUrl,true);
+  renderPrograms();
+  loadEpisodes(feedUrl);
   searchPods();
 }
 
-async function loadEpisodes(feedUrl,initial=false){
-  try{
-    const res = await fetch(PROXY+encodeURIComponent(feedUrl));
-    const text = await res.text();
-    const xml = new DOMParser().parseFromString(text,"text/xml");
-    const items=[...xml.querySelectorAll("item")].slice(0,30);
+async function loadEpisodes(feedUrl){
+  let text=null;
+  for(const make of PROXIES){
+    try{
+      const res = await fetch(make(feedUrl));
+      text = await res.text();
+      if(text && text.includes("<item")) break;
+    }catch{}
+  }
 
-    let programs=load("programs");
-    const p=programs.find(x=>x.feedUrl===feedUrl);
-    const oldCount = p.episodes.length;
+  let programs=load("programs");
+  const p=programs.find(x=>x.feedUrl===feedUrl);
+  if(!text){
+    p.loading=false;
+    p.error=true;
+    store("programs",programs);
+    renderPrograms();
+    return;
+  }
+
+  try{
+    const xml = new DOMParser().parseFromString(text,"text/xml");
+    const items=[...xml.querySelectorAll("item")];
 
     p.episodes = items.map(i=>({
-      id:btoa(i.querySelector("title")?.textContent||Math.random()),
-      title:i.querySelector("title")?.textContent||"Episodio",
+      id:btoa(i.querySelector("guid")?.textContent || i.querySelector("title")?.textContent || Math.random()),
+      title:i.querySelector("title")?.textContent || "Episodio",
       url:i.querySelector("enclosure")?.getAttribute("url")
     })).filter(e=>e.url);
 
-    if(!initial && p.episodes.length > oldCount){
-      p.newCount = p.episodes.length - oldCount;
-      alert("📢 Nuevos episodios en: " + p.title);
-    } else {
-      p.newCount = 0;
-    }
-
+    p.loading=false;
+    p.error=false;
     store("programs",programs);
     renderPrograms();
-  }catch{}
+  }catch{
+    p.loading=false;
+    p.error=true;
+    store("programs",programs);
+    renderPrograms();
+  }
+}
+
+function retry(feedUrl){
+  let programs=load("programs");
+  const p=programs.find(x=>x.feedUrl===feedUrl);
+  p.loading=true; p.error=false;
+  store("programs",programs);
+  renderPrograms();
+  loadEpisodes(feedUrl);
 }
 
 function toggleProgram(feedUrl){
@@ -209,10 +235,6 @@ function deleteProgram(feedUrl){
   searchPods();
 }
 
-function refreshProgram(feedUrl){
-  loadEpisodes(feedUrl,false);
-}
-
 function renderPrograms(){
   programList.innerHTML="";
   load("programs").forEach(p=>{
@@ -221,21 +243,22 @@ function renderPrograms(){
     box.innerHTML=`
       <div class="programHeader">
         <strong>${p.title}</strong>
-        ${p.newCount>0?`<span class="badge">+${p.newCount}</span>`:""}
-        <button class="small" onclick="refreshProgram('${p.feedUrl}')">🔄</button>
-        <button class="small" onclick="toggleProgram('${p.feedUrl}')">${p.open?"▲":"▼"}</button>
-        <button class="danger small" onclick="deleteProgram('${p.feedUrl}')">🗑</button>
+        <button class="small" onclick="toggleProgram('${esc(p.feedUrl)}')">${p.open?"▲":"▼"}</button>
+        <button class="danger small" onclick="deleteProgram('${esc(p.feedUrl)}')">🗑</button>
       </div>`;
 
     if(p.open){
+      if(p.loading) box.innerHTML += `<div class="loading">Cargando episodios…</div>`;
+      if(p.error) box.innerHTML += `<div class="error">No se pudieron cargar. <button class="small" onclick="retry('${esc(p.feedUrl)}')">Reintentar</button></div>`;
+
       p.episodes.forEach(e=>{
         const played=localStorage.getItem("played_"+e.id)==="1";
         const div=document.createElement("div");
         div.className="item";
         div.innerHTML=`${played?"✅ ":""}${e.title}
           <div class="actions">
-            <button onclick="play('${e.url}','${e.title.replace(/'/g,"")}','${e.id}')">▶</button>
-            <a href="${e.url}" target="_blank" onclick="trackDownload('${e.id}','${e.title.replace(/'/g,"")}','${e.url}')">⬇</a>
+            <button onclick="play('${esc(e.url)}','${esc(e.title)}','${e.id}')">▶</button>
+            <a href="${e.url}" target="_blank">⬇</a>
           </div>`;
         box.appendChild(div);
       });
@@ -244,62 +267,11 @@ function renderPrograms(){
   });
 }
 
-/* ========== DESCARGAS / FAVORITOS ========== */
-function trackDownload(id,title,url){
-  let arr=load("downloads");
-  if(arr.some(d=>d.id===id)) return;
-  arr.push({id,title,url,fav:false});
-  store("downloads",arr);
-  renderDownloads();
-}
+/* ===== DESCARGAS / FAVORITOS ===== */
+function renderDownloads(){ downloadsList.innerHTML="<div class='muted'>Función en desarrollo</div>"; }
+function renderFavorites(){ favoritesList.innerHTML="<div class='muted'>Función en desarrollo</div>"; }
 
-function renderDownloads(){
-  downloadsList.innerHTML="";
-  const arr=load("downloads");
-  if(!arr.length){ downloadsList.innerHTML="<div class='muted'>No hay descargas.</div>"; return; }
-  arr.forEach(d=>{
-    const div=document.createElement("div");
-    div.className="item";
-    div.innerHTML=`<strong>${d.title}</strong>
-      <div class="actions">
-        <button onclick="play('${d.url}','${d.title}')">▶</button>
-        <button onclick="toggleFav('${d.id}')">${d.fav?"⭐":"☆"}</button>
-        <button class="danger" onclick="deleteDownload('${d.id}')">🗑</button>
-      </div>`;
-    downloadsList.appendChild(div);
-  });
-}
-
-function deleteDownload(id){
-  let arr=load("downloads").filter(d=>d.id!==id);
-  store("downloads",arr);
-  renderDownloads(); renderFavorites();
-}
-
-function toggleFav(id){
-  let arr=load("downloads");
-  const d=arr.find(x=>x.id===id);
-  d.fav=!d.fav;
-  store("downloads",arr);
-  renderDownloads(); renderFavorites();
-}
-
-function renderFavorites(){
-  favoritesList.innerHTML="";
-  const arr=load("downloads").filter(d=>d.fav);
-  if(!arr.length){ favoritesList.innerHTML="<div class='muted'>No hay favoritos.</div>"; return; }
-  arr.forEach(f=>{
-    const div=document.createElement("div");
-    div.className="item";
-    div.innerHTML=`<strong>${f.title}</strong>
-      <div class="actions">
-        <button onclick="play('${f.url}','${f.title}')">▶</button>
-      </div>`;
-    favoritesList.appendChild(div);
-  });
-}
-
-renderPrograms(); renderDownloads(); renderFavorites();
+renderPrograms();
 </script>
 </body>
 </html>
