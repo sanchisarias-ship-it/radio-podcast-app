@@ -4,34 +4,42 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>🎧 Podcast</title>
-<meta name="theme-color" content="#020617">
+<meta name="theme-color" content="#111111">
 
 <style>
 :root{
-  --bg:#020617; --card:#111827; --border:#1f2937;
-  --accent:#22c55e; --accent2:#38bdf8; --text:#e5e7eb; --muted:#9ca3af; --danger:#ef4444;
+  --bg:#0b0b0b;
+  --card:#141414;
+  --border:#222;
+  --accent:#f43f5e;
+  --text:#f5f5f5;
+  --muted:#a1a1aa;
+  --danger:#7f1d1d;
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#020617;color:var(--text)}
-header{position:sticky;top:0;background:#020617;padding:14px;text-align:center;font-weight:900;z-index:10}
-nav{position:sticky;top:52px;display:flex;gap:6px;padding:10px;background:#020617;z-index:9}
-nav button{flex:1;padding:12px;border-radius:16px;border:1px solid var(--border);background:#000;color:#fff}
-nav button.active{background:linear-gradient(135deg,#22c55e,#38bdf8);color:#000;font-weight:900}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text)}
+header{position:sticky;top:0;background:#000;padding:16px;text-align:center;font-weight:800;font-size:18px;z-index:10}
+nav{position:sticky;top:56px;display:flex;gap:8px;padding:10px;background:#000;z-index:9}
+nav button{flex:1;padding:12px;border-radius:999px;border:1px solid var(--border);background:#000;color:#fff}
+nav button.active{background:var(--accent);color:#000;font-weight:800}
 .section{display:none;padding:14px}
 .section.active{display:block}
-.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:14px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:16px;margin-bottom:14px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-input,button{padding:12px;border-radius:16px;border:1px solid var(--border);background:#000;color:#fff}
-button.primary{background:linear-gradient(135deg,#22c55e,#38bdf8);color:#000;font-weight:900}
-button.danger{background:#2a0000;color:#ffbaba}
-button.small{padding:6px 10px;font-size:12px}
+input,button{padding:12px 16px;border-radius:999px;border:1px solid var(--border);background:#000;color:#fff}
+button.primary{background:var(--accent);color:#000;font-weight:800}
+button.danger{background:#200;color:#fca5a5}
+button.small{padding:6px 12px;font-size:12px}
 .list{display:grid;gap:10px}
 .item{background:#000;border:1px solid var(--border);border-radius:18px;padding:12px}
-.actions{display:flex;gap:6px;flex-wrap:wrap}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .muted{color:var(--muted);font-size:14px}
-.player{position:sticky;bottom:0;background:#020617;border-top:1px solid var(--border);padding:12px}
+.badge{background:var(--accent);color:#000;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:800}
+.player{position:sticky;bottom:0;background:#000;border-top:1px solid var(--border);padding:12px}
 audio{width:100%}
-details summary{cursor:pointer;color:#9ca3af;margin-bottom:6px}
+details summary{cursor:pointer;color:#d4d4d8;margin-bottom:6px}
+.programHeader{display:flex;align-items:center;gap:6px}
+.programHeader strong{flex:1}
 </style>
 </head>
 <body>
@@ -50,7 +58,6 @@ details summary{cursor:pointer;color:#9ca3af;margin-bottom:6px}
       <input id="podQ" placeholder="Buscar podcast..." style="flex:1">
       <button class="primary" onclick="searchPods()">Buscar</button>
     </div>
-
     <details id="searchBox" open>
       <summary>Resultados</summary>
       <div id="podResults" class="list"></div>
@@ -65,7 +72,7 @@ details summary{cursor:pointer;color:#9ca3af;margin-bottom:6px}
 
 <section id="downloads" class="section">
   <div class="card">
-    <h3>⬇ Episodios descargados</h3>
+    <h3>⬇ Descargas</h3>
     <div id="downloadsList" class="list"></div>
   </div>
 </section>
@@ -100,10 +107,10 @@ function play(url,title,id){
   player.play();
   document.getElementById("playerTitle").textContent=title;
   if(id) localStorage.setItem("played_"+id,"1");
-  renderPrograms(); renderDownloads(); renderFavorites();
+  renderPrograms();
 }
 
-/* ===== BUSCADOR ===== */
+/* ========== BUSCADOR ========== */
 async function searchPods(){
   const q = podQ.value.trim(); if(!q) return;
   podResults.innerHTML="<div class='muted'>Buscando…</div>";
@@ -113,7 +120,6 @@ async function searchPods(){
   if(!results.length){ podResults.innerHTML="<div class='muted'>Sin resultados.</div>"; return; }
 
   const existing = load("programs").map(p=>p.feedUrl);
-
   results.forEach(p=>{
     const added = existing.includes(p.feedUrl);
     const div=document.createElement("div");
@@ -149,30 +155,40 @@ async function searchFyyd(q,arr){
   }catch{}
 }
 
-/* ===== PROGRAMAS ===== */
+/* ========== PROGRAMAS ========== */
 function addProgram(feedUrl,title){
   let programs = load("programs");
   if(programs.some(p=>p.feedUrl===feedUrl)) return;
-  programs.push({title,feedUrl,episodes:[],open:false});
+  programs.push({title,feedUrl,episodes:[],open:true,newCount:0});
   store("programs",programs);
-  loadEpisodes(feedUrl);
-  searchPods(); // refresca botones a "Añadido"
+  loadEpisodes(feedUrl,true);
+  searchPods();
 }
 
-async function loadEpisodes(feedUrl){
+async function loadEpisodes(feedUrl,initial=false){
   try{
     const res = await fetch(PROXY+encodeURIComponent(feedUrl));
     const text = await res.text();
     const xml = new DOMParser().parseFromString(text,"text/xml");
-    const items=[...xml.querySelectorAll("item")].slice(0,25);
+    const items=[...xml.querySelectorAll("item")].slice(0,30);
 
     let programs=load("programs");
     const p=programs.find(x=>x.feedUrl===feedUrl);
-    p.episodes=items.map(i=>({
+    const oldCount = p.episodes.length;
+
+    p.episodes = items.map(i=>({
       id:btoa(i.querySelector("title")?.textContent||Math.random()),
       title:i.querySelector("title")?.textContent||"Episodio",
       url:i.querySelector("enclosure")?.getAttribute("url")
     })).filter(e=>e.url);
+
+    if(!initial && p.episodes.length > oldCount){
+      p.newCount = p.episodes.length - oldCount;
+      alert("📢 Nuevos episodios en: " + p.title);
+    } else {
+      p.newCount = 0;
+    }
+
     store("programs",programs);
     renderPrograms();
   }catch{}
@@ -193,14 +209,20 @@ function deleteProgram(feedUrl){
   searchPods();
 }
 
+function refreshProgram(feedUrl){
+  loadEpisodes(feedUrl,false);
+}
+
 function renderPrograms(){
   programList.innerHTML="";
   load("programs").forEach(p=>{
     const box=document.createElement("div");
     box.className="item";
     box.innerHTML=`
-      <div class="row">
-        <strong style="flex:1">${p.title}</strong>
+      <div class="programHeader">
+        <strong>${p.title}</strong>
+        ${p.newCount>0?`<span class="badge">+${p.newCount}</span>`:""}
+        <button class="small" onclick="refreshProgram('${p.feedUrl}')">🔄</button>
         <button class="small" onclick="toggleProgram('${p.feedUrl}')">${p.open?"▲":"▼"}</button>
         <button class="danger small" onclick="deleteProgram('${p.feedUrl}')">🗑</button>
       </div>`;
@@ -222,7 +244,7 @@ function renderPrograms(){
   });
 }
 
-/* ===== DESCARGAS ===== */
+/* ========== DESCARGAS / FAVORITOS ========== */
 function trackDownload(id,title,url){
   let arr=load("downloads");
   if(arr.some(d=>d.id===id)) return;
@@ -262,7 +284,6 @@ function toggleFav(id){
   renderDownloads(); renderFavorites();
 }
 
-/* ===== FAVORITOS ===== */
 function renderFavorites(){
   favoritesList.innerHTML="";
   const arr=load("downloads").filter(d=>d.fav);
