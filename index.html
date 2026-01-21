@@ -87,16 +87,6 @@ const PROXIES = [
 
 let currentEpisodeId = null;
 
-if ("Notification" in window && Notification.permission !== "granted") {
-  Notification.requestPermission();
-}
-
-function notify(title, body){
-  if(Notification.permission === "granted"){
-    new Notification(title, { body });
-  }
-}
-
 function play(url,title,id){
   currentEpisodeId = id;
   player.src=url;
@@ -165,7 +155,7 @@ function addManual(){
   if(!url){ manualMsg.textContent="URL no válida"; return; }
   const title = manualTitle.value.trim() || url;
   addProgram(url,title);
-  manualMsg.textContent="Programa añadido y comprobando episodios...";
+  manualMsg.textContent="Programa añadido correctamente.";
   manualUrl.value=""; manualTitle.value="";
 }
 
@@ -173,7 +163,7 @@ function addManual(){
 function addProgram(feedUrl,title){
   let programs = load("programs");
   if(programs.some(p=>p.feedUrl===feedUrl)) return;
-  programs.push({title,feedUrl,episodes:[],lastCount:0,open:true,loading:true,error:false});
+  programs.push({title,feedUrl,episodes:[],etag:null,lastBuild:null,open:true,loading:true,error:false});
   store("programs",programs);
   renderPrograms();
   loadEpisodes(feedUrl,true);
@@ -191,36 +181,34 @@ async function loadEpisodes(feedUrl,initial=false){
 
   let programs=load("programs");
   const p=programs.find(x=>x.feedUrl===feedUrl);
-
-  if(!text){
-    p.loading=false; p.error=true;
-    store("programs",programs); renderPrograms(); return;
-  }
+  if(!text){ p.loading=false; p.error=true; store("programs",programs); renderPrograms(); return; }
 
   try{
     const xml = new DOMParser().parseFromString(text,"text/xml");
     const items=[...xml.querySelectorAll("item")];
 
-    const newEpisodes = items.map(i=>({
-      id:btoa(i.querySelector("guid")?.textContent || i.querySelector("title")?.textContent || Math.random()),
-      title:i.querySelector("title")?.textContent || "Episodio",
-      url:i.querySelector("enclosure")?.getAttribute("url"),
-      date:new Date(i.querySelector("pubDate")?.textContent||Date.now()).getTime()
-    })).filter(e=>e.url);
+    const episodes = items.map(i=>{
+      const guid = i.querySelector("guid")?.textContent;
+      const url = i.querySelector("enclosure")?.getAttribute("url");
+      const title = i.querySelector("title")?.textContent || "Episodio";
+      const id = btoa((guid || url || title));
+      return { id, title, url, date:new Date(i.querySelector("pubDate")?.textContent||Date.now()).getTime() };
+    }).filter(e=>e.url);
 
-    if(!initial && newEpisodes.length > p.lastCount){
-      notify("Nuevo episodio", p.title + " tiene nuevos capítulos");
+    const prevCount = p.episodes.length;
+    p.episodes = episodes.sort((a,b)=>b.date-a.date);
+
+    if(!initial && episodes.length > prevCount){
+      alert("📢 Nuevos episodios en " + p.title);
     }
 
-    p.lastCount = newEpisodes.length;
-    p.episodes = newEpisodes.sort((a,b)=>b.date-a.date);
     p.loading=false; p.error=false;
-
     store("programs",programs);
     renderPrograms();
   }catch{
     p.loading=false; p.error=true;
-    store("programs",programs); renderPrograms();
+    store("programs",programs);
+    renderPrograms();
   }
 }
 
@@ -242,6 +230,13 @@ function deleteProgram(feedUrl){
   renderPrograms();
 }
 
+function togglePlayed(id){
+  const key="played_"+id;
+  if(localStorage.getItem(key)==="1"){ localStorage.removeItem(key); }
+  else { localStorage.setItem(key,"1"); }
+  renderPrograms();
+}
+
 function renderPrograms(){
   programList.innerHTML="";
   load("programs").forEach(p=>{
@@ -260,11 +255,14 @@ function renderPrograms(){
       if(p.error) box.innerHTML += `<div class="error">No se pudieron cargar.</div>`;
 
       p.episodes.forEach(e=>{
+        const played = localStorage.getItem("played_"+e.id)==="1";
         const div=document.createElement("div");
         div.className="item";
-        div.innerHTML=`${e.title}
+        div.innerHTML=`
+          ${played?"✅ ":""}${e.title}
           <div class="actions">
             <button onclick="play('${esc(e.url)}','${esc(e.title)}','${e.id}')">▶</button>
+            <button onclick="togglePlayed('${e.id}')">${played?"Marcar como no escuchado":"Marcar como escuchado"}</button>
             <a href="${e.url}" target="_blank">⬇ Descargar</a>
           </div>`;
         box.appendChild(div);
@@ -274,10 +272,10 @@ function renderPrograms(){
   });
 }
 
-// Auto comprobación cada 15 minutos
+// Auto actualización cada 20 minutos
 setInterval(()=>{
   load("programs").forEach(p=> loadEpisodes(p.feedUrl,false));
-}, 900000);
+}, 1200000);
 
 renderPrograms();
 </script>
