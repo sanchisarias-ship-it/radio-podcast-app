@@ -24,12 +24,14 @@ nav button.active{background:linear-gradient(135deg,#22c55e,#38bdf8);color:#000;
 input,button{padding:12px;border-radius:16px;border:1px solid var(--border);background:#000;color:#fff}
 button.primary{background:linear-gradient(135deg,#22c55e,#38bdf8);color:#000;font-weight:900}
 button.danger{background:#2a0000;color:#ffbaba}
+button.small{padding:6px 10px;font-size:12px}
 .list{display:grid;gap:10px}
 .item{background:#000;border:1px solid var(--border);border-radius:18px;padding:12px}
 .actions{display:flex;gap:6px;flex-wrap:wrap}
 .muted{color:var(--muted);font-size:14px}
 .player{position:sticky;bottom:0;background:#020617;border-top:1px solid var(--border);padding:12px}
 audio{width:100%}
+details summary{cursor:pointer;color:#9ca3af;margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -48,7 +50,11 @@ audio{width:100%}
       <input id="podQ" placeholder="Buscar podcast..." style="flex:1">
       <button class="primary" onclick="searchPods()">Buscar</button>
     </div>
-    <div id="podResults" class="list"></div>
+
+    <details id="searchBox" open>
+      <summary>Resultados</summary>
+      <div id="podResults" class="list"></div>
+    </details>
   </div>
 
   <div class="card">
@@ -97,6 +103,7 @@ function play(url,title,id){
   renderPrograms(); renderDownloads(); renderFavorites();
 }
 
+/* ===== BUSCADOR ===== */
 async function searchPods(){
   const q = podQ.value.trim(); if(!q) return;
   podResults.innerHTML="<div class='muted'>Buscando…</div>";
@@ -104,12 +111,18 @@ async function searchPods(){
   await Promise.allSettled([searchApple(q,results), searchPI(q,results), searchFyyd(q,results)]);
   podResults.innerHTML="";
   if(!results.length){ podResults.innerHTML="<div class='muted'>Sin resultados.</div>"; return; }
+
+  const existing = load("programs").map(p=>p.feedUrl);
+
   results.forEach(p=>{
+    const added = existing.includes(p.feedUrl);
     const div=document.createElement("div");
     div.className="item";
     div.innerHTML=`<strong>${p.title}</strong>
       <p class="muted">${p.author||""}</p>
-      <button onclick="addProgram('${p.feedUrl}','${p.title.replace(/'/g,"")}')">➕ Añadir programa</button>`;
+      <button ${added?"disabled":""} onclick="addProgram('${p.feedUrl}','${p.title.replace(/'/g,"")}')">
+        ${added?"✔ Añadido":"➕ Añadir a mis programas"}
+      </button>`;
     podResults.appendChild(div);
   });
 }
@@ -136,12 +149,14 @@ async function searchFyyd(q,arr){
   }catch{}
 }
 
+/* ===== PROGRAMAS ===== */
 function addProgram(feedUrl,title){
   let programs = load("programs");
   if(programs.some(p=>p.feedUrl===feedUrl)) return;
-  programs.push({title,feedUrl,episodes:[]});
+  programs.push({title,feedUrl,episodes:[],open:false});
   store("programs",programs);
   loadEpisodes(feedUrl);
+  searchPods(); // refresca botones a "Añadido"
 }
 
 async function loadEpisodes(feedUrl){
@@ -163,36 +178,51 @@ async function loadEpisodes(feedUrl){
   }catch{}
 }
 
+function toggleProgram(feedUrl){
+  let programs=load("programs");
+  const p=programs.find(x=>x.feedUrl===feedUrl);
+  p.open=!p.open;
+  store("programs",programs);
+  renderPrograms();
+}
+
 function deleteProgram(feedUrl){
   let programs=load("programs").filter(p=>p.feedUrl!==feedUrl);
   store("programs",programs);
   renderPrograms();
+  searchPods();
 }
 
 function renderPrograms(){
   programList.innerHTML="";
   load("programs").forEach(p=>{
-    const g=document.createElement("div");
-    g.className="item";
-    g.innerHTML=`<div class="row">
-      <strong style="flex:1">${p.title}</strong>
-      <button class="danger" onclick="deleteProgram('${p.feedUrl}')">🗑</button>
-    </div>`;
-    p.episodes.forEach(e=>{
-      const played=localStorage.getItem("played_"+e.id)==="1";
-      const div=document.createElement("div");
-      div.className="item";
-      div.innerHTML=`${played?"✅ ":""}${e.title}
-        <div class="actions">
-          <button onclick="play('${e.url}','${e.title.replace(/'/g,"")}','${e.id}')">▶</button>
-          <a href="${e.url}" target="_blank" onclick="trackDownload('${e.id}','${e.title.replace(/'/g,"")}','${e.url}')">⬇</a>
-        </div>`;
-      g.appendChild(div);
-    });
-    programList.appendChild(g);
+    const box=document.createElement("div");
+    box.className="item";
+    box.innerHTML=`
+      <div class="row">
+        <strong style="flex:1">${p.title}</strong>
+        <button class="small" onclick="toggleProgram('${p.feedUrl}')">${p.open?"▲":"▼"}</button>
+        <button class="danger small" onclick="deleteProgram('${p.feedUrl}')">🗑</button>
+      </div>`;
+
+    if(p.open){
+      p.episodes.forEach(e=>{
+        const played=localStorage.getItem("played_"+e.id)==="1";
+        const div=document.createElement("div");
+        div.className="item";
+        div.innerHTML=`${played?"✅ ":""}${e.title}
+          <div class="actions">
+            <button onclick="play('${e.url}','${e.title.replace(/'/g,"")}','${e.id}')">▶</button>
+            <a href="${e.url}" target="_blank" onclick="trackDownload('${e.id}','${e.title.replace(/'/g,"")}','${e.url}')">⬇</a>
+          </div>`;
+        box.appendChild(div);
+      });
+    }
+    programList.appendChild(box);
   });
 }
 
+/* ===== DESCARGAS ===== */
 function trackDownload(id,title,url){
   let arr=load("downloads");
   if(arr.some(d=>d.id===id)) return;
@@ -232,6 +262,7 @@ function toggleFav(id){
   renderDownloads(); renderFavorites();
 }
 
+/* ===== FAVORITOS ===== */
 function renderFavorites(){
   favoritesList.innerHTML="";
   const arr=load("downloads").filter(d=>d.fav);
