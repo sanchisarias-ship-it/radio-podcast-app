@@ -19,40 +19,32 @@
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text)}
 header{position:sticky;top:0;background:#000;padding:16px;text-align:center;font-weight:800;font-size:18px;z-index:10}
-nav{position:sticky;top:56px;display:flex;gap:8px;padding:10px;background:#000;z-index:9}
-nav button{flex:1;padding:12px;border-radius:999px;border:1px solid var(--border);background:#000;color:#fff}
-nav button.active{background:var(--accent);color:#000;font-weight:800}
-.section{display:none;padding:14px}
-.section.active{display:block}
+.section{padding:14px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:16px;margin-bottom:14px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 input,button{padding:12px 16px;border-radius:999px;border:1px solid var(--border);background:#000;color:#fff}
 button.primary{background:var(--accent);color:#000;font-weight:800}
-button.danger{background:#200;color:#fca5a5}
 button.small{padding:6px 12px;font-size:12px}
+button.toggle{background:#111}
 .list{display:grid;gap:10px}
 .item{background:#000;border:1px solid var(--border);border-radius:18px;padding:12px}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .muted{color:var(--muted);font-size:14px}
-.badge{background:var(--accent);color:#000;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:800}
 .player{position:sticky;bottom:0;background:#000;border-top:1px solid var(--border);padding:12px}
 audio{width:100%}
 .programHeader{display:flex;align-items:center;gap:6px}
 .programHeader strong{flex:1}
 .loading{color:#facc15;font-size:13px}
 .error{color:#fca5a5;font-size:13px}
+.progress{height:6px;background:#222;border-radius:999px;overflow:hidden;margin-top:4px}
+.progress > div{height:100%;background:var(--accent);width:0%}
 </style>
 </head>
 <body>
 
 <header>🎧 Podcast</header>
-<nav>
-  <button class="active" onclick="show('podcasts',this)">Podcasts</button>
-  <button onclick="show('downloads',this)">⬇ Descargas</button>
-  <button onclick="show('favorites',this)">⭐ Favoritos</button>
-</nav>
 
-<section id="podcasts" class="section active">
+<section class="section">
   <div class="card">
     <h3>🔎 Buscar podcasts</h3>
     <div class="row">
@@ -65,20 +57,6 @@ audio{width:100%}
   <div class="card">
     <h3>📚 Mis programas</h3>
     <div id="programList"></div>
-  </div>
-</section>
-
-<section id="downloads" class="section">
-  <div class="card">
-    <h3>⬇ Descargas</h3>
-    <div id="downloadsList" class="list"></div>
-  </div>
-</section>
-
-<section id="favorites" class="section">
-  <div class="card">
-    <h3>⭐ Favoritos</h3>
-    <div id="favoritesList" class="list"></div>
   </div>
 </section>
 
@@ -98,20 +76,26 @@ const PROXIES = [
   url => "https://cors.isomorphic-git.org/" + url
 ];
 
-function show(id,btn){
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
-}
+let currentEpisodeId = null;
 
 function play(url,title,id){
+  currentEpisodeId = id;
   player.src=url;
-  player.play().catch(()=>{});
   document.getElementById("playerTitle").textContent=title;
-  if(id) localStorage.setItem("played_"+id,"1");
-  renderPrograms();
+
+  const saved = localStorage.getItem("pos_"+id);
+  player.onloadedmetadata = () => {
+    if(saved && !isNaN(saved)) player.currentTime = Number(saved);
+  };
+
+  player.play().catch(()=>{});
 }
+
+player.addEventListener("timeupdate",()=>{
+  if(currentEpisodeId){
+    localStorage.setItem("pos_"+currentEpisodeId, player.currentTime);
+  }
+});
 
 /* ===== BUSCADOR ===== */
 async function searchPods(){
@@ -181,12 +165,10 @@ async function loadEpisodes(feedUrl){
 
   let programs=load("programs");
   const p=programs.find(x=>x.feedUrl===feedUrl);
+
   if(!text){
-    p.loading=false;
-    p.error=true;
-    store("programs",programs);
-    renderPrograms();
-    return;
+    p.loading=false; p.error=true;
+    store("programs",programs); renderPrograms(); return;
   }
 
   try{
@@ -196,28 +178,20 @@ async function loadEpisodes(feedUrl){
     p.episodes = items.map(i=>({
       id:btoa(i.querySelector("guid")?.textContent || i.querySelector("title")?.textContent || Math.random()),
       title:i.querySelector("title")?.textContent || "Episodio",
-      url:i.querySelector("enclosure")?.getAttribute("url")
+      url:i.querySelector("enclosure")?.getAttribute("url"),
+      date: new Date(i.querySelector("pubDate")?.textContent || Date.now()).getTime()
     })).filter(e=>e.url);
 
-    p.loading=false;
-    p.error=false;
+    // Ordenar por fecha (más nuevos primero)
+    p.episodes.sort((a,b)=>b.date - a.date);
+
+    p.loading=false; p.error=false;
     store("programs",programs);
     renderPrograms();
   }catch{
-    p.loading=false;
-    p.error=true;
-    store("programs",programs);
-    renderPrograms();
+    p.loading=false; p.error=true;
+    store("programs",programs); renderPrograms();
   }
-}
-
-function retry(feedUrl){
-  let programs=load("programs");
-  const p=programs.find(x=>x.feedUrl===feedUrl);
-  p.loading=true; p.error=false;
-  store("programs",programs);
-  renderPrograms();
-  loadEpisodes(feedUrl);
 }
 
 function toggleProgram(feedUrl){
@@ -235,6 +209,16 @@ function deleteProgram(feedUrl){
   searchPods();
 }
 
+function togglePlayed(id){
+  const key = "played_"+id;
+  if(localStorage.getItem(key)==="1"){
+    localStorage.removeItem(key);
+  } else {
+    localStorage.setItem(key,"1");
+  }
+  renderPrograms();
+}
+
 function renderPrograms(){
   programList.innerHTML="";
   load("programs").forEach(p=>{
@@ -244,21 +228,24 @@ function renderPrograms(){
       <div class="programHeader">
         <strong>${p.title}</strong>
         <button class="small" onclick="toggleProgram('${esc(p.feedUrl)}')">${p.open?"▲":"▼"}</button>
-        <button class="danger small" onclick="deleteProgram('${esc(p.feedUrl)}')">🗑</button>
+        <button class="small" onclick="deleteProgram('${esc(p.feedUrl)}')">🗑</button>
       </div>`;
 
     if(p.open){
       if(p.loading) box.innerHTML += `<div class="loading">Cargando episodios…</div>`;
-      if(p.error) box.innerHTML += `<div class="error">No se pudieron cargar. <button class="small" onclick="retry('${esc(p.feedUrl)}')">Reintentar</button></div>`;
+      if(p.error) box.innerHTML += `<div class="error">No se pudieron cargar.</div>`;
 
       p.episodes.forEach(e=>{
         const played=localStorage.getItem("played_"+e.id)==="1";
+        const pos = localStorage.getItem("pos_"+e.id) || 0;
         const div=document.createElement("div");
         div.className="item";
-        div.innerHTML=`${played?"✅ ":""}${e.title}
+        div.innerHTML=`
+          ${played?"✅ ":""}${e.title}
+          <div class="progress"><div style="width:${Math.min((pos/3600)*100,100)}%"></div></div>
           <div class="actions">
             <button onclick="play('${esc(e.url)}','${esc(e.title)}','${e.id}')">▶</button>
-            <a href="${e.url}" target="_blank">⬇</a>
+            <button class="toggle" onclick="togglePlayed('${e.id}')">${played?"Marcar como no escuchado":"Marcar como escuchado"}</button>
           </div>`;
         box.appendChild(div);
       });
@@ -266,10 +253,6 @@ function renderPrograms(){
     programList.appendChild(box);
   });
 }
-
-/* ===== DESCARGAS / FAVORITOS ===== */
-function renderDownloads(){ downloadsList.innerHTML="<div class='muted'>Función en desarrollo</div>"; }
-function renderFavorites(){ favoritesList.innerHTML="<div class='muted'>Función en desarrollo</div>"; }
 
 renderPrograms();
 </script>
