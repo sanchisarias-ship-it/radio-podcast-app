@@ -3,78 +3,52 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>🎧 Mi Radio & Podcasts</title>
+<title>🎧 Podcast</title>
 <meta name="theme-color" content="#020617">
 
 <style>
 :root{
-  --bg:#020617; --panel:#0f172a; --card:#111827; --border:#1f2937;
+  --bg:#020617; --card:#111827; --border:#1f2937;
   --accent:#22c55e; --accent2:#38bdf8; --text:#e5e7eb; --muted:#9ca3af; --danger:#ef4444;
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#020617,#0b1220);color:var(--text)}
-header{position:sticky;top:0;background:rgba(2,6,23,.95);padding:14px;text-align:center;font-weight:900;z-index:10}
-nav{position:sticky;top:52px;display:flex;gap:6px;padding:10px;background:rgba(2,6,23,.95);z-index:9}
-nav button{flex:1;padding:12px;border-radius:16px;border:1px solid var(--border);background:#020617;color:#fff}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#020617;color:var(--text)}
+header{position:sticky;top:0;background:#020617;padding:14px;text-align:center;font-weight:900;z-index:10}
+nav{position:sticky;top:52px;display:flex;gap:6px;padding:10px;background:#020617;z-index:9}
+nav button{flex:1;padding:12px;border-radius:16px;border:1px solid var(--border);background:#000;color:#fff}
 nav button.active{background:linear-gradient(135deg,#22c55e,#38bdf8);color:#000;font-weight:900}
 .section{display:none;padding:14px}
 .section.active{display:block}
-.card{background:rgba(17,24,39,.98);border:1px solid var(--border);border-radius:20px;padding:14px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:14px;margin-bottom:12px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-input,select,button{padding:12px;border-radius:16px;border:1px solid var(--border);background:#020617;color:#fff}
+input,button{padding:12px;border-radius:16px;border:1px solid var(--border);background:#000;color:#fff}
 button.primary{background:linear-gradient(135deg,#22c55e,#38bdf8);color:#000;font-weight:900}
-button.ghost{background:transparent}
-button.danger{background:#160a0a;border-color:#3f1d1d;color:#fecaca}
+button.danger{background:#2a0000;color:#ffbaba}
 .list{display:grid;gap:10px}
-.item{background:#020617;border:1px solid var(--border);border-radius:18px;padding:12px}
+.item{background:#000;border:1px solid var(--border);border-radius:18px;padding:12px}
 .actions{display:flex;gap:6px;flex-wrap:wrap}
 .muted{color:var(--muted);font-size:14px}
-.badge{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--border)}
-.group{border:1px dashed var(--border);border-radius:18px;padding:10px;margin-bottom:10px}
-.episode{background:#020617;border:1px solid var(--border);border-radius:16px;padding:10px;margin-top:8px}
-.player{position:sticky;bottom:0;background:rgba(2,6,23,.97);border-top:1px solid var(--border);padding:12px;z-index:10}
+.player{position:sticky;bottom:0;background:#020617;border-top:1px solid var(--border);padding:12px}
 audio{width:100%}
-.small{font-size:12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
-.cardItem{background:#020617;border:1px solid var(--border);border-radius:18px;padding:10px;text-align:center}
-.cardItem img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;border:1px solid var(--border)}
 </style>
 </head>
 <body>
 
-<header>🎧 Mi Radio & Podcasts</header>
+<header>🎧 Podcast</header>
 <nav>
-  <button class="active" onclick="show('radios',this)">Radios</button>
-  <button onclick="show('podcasts',this)">Podcasts</button>
-  <button onclick="show('favRadios',this)">⭐ Radios</button>
-  <button onclick="show('favPods',this)">⭐ Podcasts</button>
+  <button class="active" onclick="show('podcasts',this)">Podcasts</button>
+  <button onclick="show('downloads',this)">⬇ Descargas</button>
+  <button onclick="show('favorites',this)">⭐ Favoritos</button>
 </nav>
 
-<section id="radios" class="section active">
-  <div class="card">
-    <h3>🔎 Buscar radios</h3>
-    <div class="row">
-      <input id="radioQ" placeholder="SER Valencia, radio Elche, rock Alicante" style="flex:1">
-      <button class="primary" onclick="searchRadios()">Buscar</button>
-    </div>
-    <details id="radioDetails" open>
-      <summary class="muted">Resultados</summary>
-      <div id="radioResults" class="list"></div>
-    </details>
-  </div>
-</section>
-
-<section id="podcasts" class="section">
+<section id="podcasts" class="section active">
   <div class="card">
     <h3>🔎 Buscar podcasts</h3>
     <div class="row">
-      <input id="podQ" placeholder="SER podcast, historia, tecnología..." style="flex:1">
+      <input id="podQ" placeholder="Buscar podcast..." style="flex:1">
       <button class="primary" onclick="searchPods()">Buscar</button>
     </div>
-    <details id="podDetails" open>
-      <summary class="muted">Resultados</summary>
-      <div id="podResults" class="list"></div>
-    </details>
+    <div id="podResults" class="list"></div>
   </div>
 
   <div class="card">
@@ -83,84 +57,44 @@ audio{width:100%}
   </div>
 </section>
 
-<section id="favRadios" class="section">
+<section id="downloads" class="section">
   <div class="card">
-    <h3>⭐ Radios favoritas</h3>
-    <div id="favRadiosGrid" class="grid"></div>
+    <h3>⬇ Episodios descargados</h3>
+    <div id="downloadsList" class="list"></div>
   </div>
 </section>
 
-<section id="favPods" class="section">
+<section id="favorites" class="section">
   <div class="card">
-    <h3>⭐ Podcasts favoritos</h3>
-    <div id="favPodsGrid" class="grid"></div>
+    <h3>⭐ Favoritos</h3>
+    <div id="favoritesList" class="list"></div>
   </div>
 </section>
 
 <div class="player">
-  <div class="row">
-    <div style="flex:1">
-      <strong id="playerTitle">Nada en reproducción</strong>
-      <div id="playerMeta" class="muted small"></div>
-    </div>
-    <div class="row">
-      <label class="small">Velocidad</label>
-      <select id="speed" onchange="setSpeed(this.value)">
-        <option>0.75</option><option selected>1</option><option>1.25</option><option>1.5</option><option>2</option>
-      </select>
-    </div>
-  </div>
+  <strong id="playerTitle">Nada en reproducción</strong>
   <audio id="player" controls playsinline></audio>
 </div>
 
 <script>
 const PROXY = "https://api.allorigins.win/raw?url=";
-const player = document.getElementById('player');
-const esc = s => String(s||"").replace(/'/g,"\\'");
+const player = document.getElementById("player");
 const store=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const load=(k,d=[])=>JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
 
 function show(id,btn){
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
 }
 
-function play(url,title,meta=""){
+function play(url,title,id){
   player.src=url;
-  player.playbackRate = Number(document.getElementById('speed').value)||1;
-  player.play().catch(()=>alert("Pulsa play para comenzar"));
-  document.getElementById('playerTitle').textContent = title;
-  document.getElementById('playerMeta').textContent = meta;
-}
-
-function setSpeed(v){ player.playbackRate = Number(v)||1; }
-
-async function searchRadios(){
-  const q = radioQ.value.trim(); if(!q) return;
-  radioResults.innerHTML="<div class='muted'>Buscando…</div>";
-  try{
-    const url = `https://de1.api.radio-browser.info/json/stations/search?name=${encodeURIComponent(q)}&tag=${encodeURIComponent(q)}&country=${encodeURIComponent(q)}&state=${encodeURIComponent(q)}&limit=40`;
-    const res = await fetch(url);
-    const data = await res.json();
-    radioResults.innerHTML="";
-    if(!data.length){ radioResults.innerHTML="<div class='muted'>Sin resultados.</div>"; return; }
-    data.forEach(r=>{
-      const div=document.createElement('div'); div.className="item";
-      const favicon = r.favicon || "https://via.placeholder.com/150?text=Radio";
-      div.innerHTML=`
-        <strong>${r.name}</strong> <span class="badge">${r.country||""}</span>
-        <p class="muted">${r.state||""}</p>
-        <div class="actions">
-          <button onclick="play('${esc(r.url)}','${esc(r.name)}','Radio')">▶</button>
-          <button onclick="addFavRadio('${esc(r.name)}','${esc(r.url)}','${esc(favicon)}')">⭐ Añadir</button>
-        </div>`;
-      radioResults.appendChild(div);
-    });
-  }catch{
-    radioResults.innerHTML="<div class='muted'>Error buscando radios.</div>";
-  }
+  player.play();
+  document.getElementById("playerTitle").textContent=title;
+  if(id) localStorage.setItem("played_"+id,"1");
+  renderPrograms(); renderDownloads(); renderFavorites();
 }
 
 async function searchPods(){
@@ -171,116 +105,66 @@ async function searchPods(){
   podResults.innerHTML="";
   if(!results.length){ podResults.innerHTML="<div class='muted'>Sin resultados.</div>"; return; }
   results.forEach(p=>{
-    const div=document.createElement('div'); div.className="item";
-    div.innerHTML=`
-      <strong>${p.title}</strong> <span class="badge">${p.source}</span>
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`<strong>${p.title}</strong>
       <p class="muted">${p.author||""}</p>
-      <div class="actions">
-        <button onclick="addProgram('${esc(p.feedUrl)}','${esc(p.title)}')">➕ Añadir</button>
-        <button onclick="addFavPod('${esc(p.title)}','${esc(p.feedUrl)}','${esc(p.image||"")}')">⭐ Favorito</button>
-      </div>`;
+      <button onclick="addProgram('${p.feedUrl}','${p.title.replace(/'/g,"")}')">➕ Añadir programa</button>`;
     podResults.appendChild(div);
   });
 }
 
 async function searchApple(q,arr){
   try{
-    const res = await fetch(PROXY + encodeURIComponent("https://itunes.apple.com/search?media=podcast&term="+q+"&limit=30"));
+    const res = await fetch(PROXY+encodeURIComponent("https://itunes.apple.com/search?media=podcast&term="+q+"&limit=20"));
     const data = await res.json();
-    data.results.forEach(p=>{
-      if(p.feedUrl) arr.push({title:p.collectionName,author:p.artistName,feedUrl:p.feedUrl,image:p.artworkUrl600,source:"Apple"});
-    });
+    data.results.forEach(p=>p.feedUrl && arr.push({title:p.collectionName,author:p.artistName,feedUrl:p.feedUrl}));
   }catch{}
 }
 async function searchPI(q,arr){
   try{
-    const res = await fetch(PROXY + encodeURIComponent("https://api.podcastindex.org/api/1.0/search/byterm?q="+q));
+    const res = await fetch(PROXY+encodeURIComponent("https://api.podcastindex.org/api/1.0/search/byterm?q="+q));
     const data = await res.json();
-    (data.feeds||[]).slice(0,30).forEach(p=>{
-      if(p.url) arr.push({title:p.title,author:p.author,feedUrl:p.url,image:p.image,source:"PodcastIndex"});
-    });
+    (data.feeds||[]).slice(0,20).forEach(p=>p.url && arr.push({title:p.title,author:p.author,feedUrl:p.url}));
   }catch{}
 }
 async function searchFyyd(q,arr){
   try{
-    const res = await fetch(PROXY + encodeURIComponent("https://api.fyyd.de/0.2/search/podcast?term="+q));
+    const res = await fetch(PROXY+encodeURIComponent("https://api.fyyd.de/0.2/search/podcast?term="+q));
     const data = await res.json();
-    (data.data||[]).slice(0,20).forEach(p=>{
-      if(p.xmlURL) arr.push({title:p.title,author:p.author,feedUrl:p.xmlURL,image:p.imgURL,source:"Fyyd"});
-    });
+    (data.data||[]).slice(0,15).forEach(p=>p.xmlURL && arr.push({title:p.title,author:p.author,feedUrl:p.xmlURL}));
   }catch{}
 }
 
-function addFavRadio(name,url,image){
-  let arr = load("favRadios");
-  if(arr.some(x=>x.url===url)) return;
-  arr.push({name,url,image});
-  store("favRadios",arr);
-  renderFavs();
-  radioDetails.open = false;
-}
-
-function addFavPod(title,feedUrl,image){
-  let arr = load("favPods");
-  if(arr.some(x=>x.feedUrl===feedUrl)) return;
-  arr.push({title,feedUrl,image});
-  store("favPods",arr);
-  renderFavs();
-  podDetails.open = false;
-}
-
-function renderFavs(){
-  favRadiosGrid.innerHTML="";
-  load("favRadios").forEach(r=>{
-    const d=document.createElement("div"); d.className="cardItem";
-    d.innerHTML=`
-      <img src="${r.image}" onerror="this.src='https://via.placeholder.com/300?text=Radio'">
-      <div>${r.name}</div>
-      <button onclick="play('${esc(r.url)}','${esc(r.name)}','Radio')">▶</button>`;
-    favRadiosGrid.appendChild(d);
-  });
-
-  favPodsGrid.innerHTML="";
-  load("favPods").forEach(p=>{
-    const d=document.createElement("div"); d.className="cardItem";
-    d.innerHTML=`
-      <img src="${p.image||'https://via.placeholder.com/300?text=Podcast'}" onerror="this.src='https://via.placeholder.com/300?text=Podcast'">
-      <div>${p.title}</div>`;
-    favPodsGrid.appendChild(d);
-  });
-}
-
 function addProgram(feedUrl,title){
-  const programs = load("programs");
+  let programs = load("programs");
   if(programs.some(p=>p.feedUrl===feedUrl)) return;
-  programs.push({title,feedUrl,episodes:[],collapsed:true});
+  programs.push({title,feedUrl,episodes:[]});
   store("programs",programs);
   loadEpisodes(feedUrl);
 }
 
 async function loadEpisodes(feedUrl){
   try{
-    const res = await fetch(PROXY + encodeURIComponent(feedUrl));
+    const res = await fetch(PROXY+encodeURIComponent(feedUrl));
     const text = await res.text();
-    const xml = new DOMParser().parseFromString(text,'text/xml');
-    const items = [...xml.querySelectorAll('item')].slice(0,30);
+    const xml = new DOMParser().parseFromString(text,"text/xml");
+    const items=[...xml.querySelectorAll("item")].slice(0,25);
 
-    const programs = load("programs");
-    const p = programs.find(x=>x.feedUrl===feedUrl);
-    p.episodes = items.map(i=>({
-      title: i.querySelector('title')?.textContent || "Episodio",
-      url: i.querySelector('enclosure')?.getAttribute('url')
+    let programs=load("programs");
+    const p=programs.find(x=>x.feedUrl===feedUrl);
+    p.episodes=items.map(i=>({
+      id:btoa(i.querySelector("title")?.textContent||Math.random()),
+      title:i.querySelector("title")?.textContent||"Episodio",
+      url:i.querySelector("enclosure")?.getAttribute("url")
     })).filter(e=>e.url);
-
     store("programs",programs);
     renderPrograms();
   }catch{}
 }
 
-function toggleProgram(feedUrl){
-  const programs = load("programs");
-  const p = programs.find(x=>x.feedUrl===feedUrl);
-  p.collapsed = !p.collapsed;
+function deleteProgram(feedUrl){
+  let programs=load("programs").filter(p=>p.feedUrl!==feedUrl);
   store("programs",programs);
   renderPrograms();
 }
@@ -288,29 +172,82 @@ function toggleProgram(feedUrl){
 function renderPrograms(){
   programList.innerHTML="";
   load("programs").forEach(p=>{
-    const g=document.createElement("div"); g.className="group";
-    g.innerHTML=`
-      <div class="row">
-        <strong style="flex:1">${p.title}</strong>
-        <button onclick="toggleProgram('${esc(p.feedUrl)}')">${p.collapsed?'▼':'▲'}</button>
-      </div>`;
-    if(!p.collapsed){
-      p.episodes.forEach(e=>{
-        const d=document.createElement("div"); d.className="episode";
-        d.innerHTML=`
-          <div>${e.title}</div>
-          <div class="actions">
-            <button onclick="play('${esc(e.url)}','${esc(e.title)}','${esc(p.title)}')">▶</button>
-            <a href="${e.url}" target="_blank"><button class="ghost">⬇</button></a>
-          </div>`;
-        g.appendChild(d);
-      });
-    }
+    const g=document.createElement("div");
+    g.className="item";
+    g.innerHTML=`<div class="row">
+      <strong style="flex:1">${p.title}</strong>
+      <button class="danger" onclick="deleteProgram('${p.feedUrl}')">🗑</button>
+    </div>`;
+    p.episodes.forEach(e=>{
+      const played=localStorage.getItem("played_"+e.id)==="1";
+      const div=document.createElement("div");
+      div.className="item";
+      div.innerHTML=`${played?"✅ ":""}${e.title}
+        <div class="actions">
+          <button onclick="play('${e.url}','${e.title.replace(/'/g,"")}','${e.id}')">▶</button>
+          <a href="${e.url}" target="_blank" onclick="trackDownload('${e.id}','${e.title.replace(/'/g,"")}','${e.url}')">⬇</a>
+        </div>`;
+      g.appendChild(div);
+    });
     programList.appendChild(g);
   });
 }
 
-renderFavs(); renderPrograms();
+function trackDownload(id,title,url){
+  let arr=load("downloads");
+  if(arr.some(d=>d.id===id)) return;
+  arr.push({id,title,url,fav:false});
+  store("downloads",arr);
+  renderDownloads();
+}
+
+function renderDownloads(){
+  downloadsList.innerHTML="";
+  const arr=load("downloads");
+  if(!arr.length){ downloadsList.innerHTML="<div class='muted'>No hay descargas.</div>"; return; }
+  arr.forEach(d=>{
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`<strong>${d.title}</strong>
+      <div class="actions">
+        <button onclick="play('${d.url}','${d.title}')">▶</button>
+        <button onclick="toggleFav('${d.id}')">${d.fav?"⭐":"☆"}</button>
+        <button class="danger" onclick="deleteDownload('${d.id}')">🗑</button>
+      </div>`;
+    downloadsList.appendChild(div);
+  });
+}
+
+function deleteDownload(id){
+  let arr=load("downloads").filter(d=>d.id!==id);
+  store("downloads",arr);
+  renderDownloads(); renderFavorites();
+}
+
+function toggleFav(id){
+  let arr=load("downloads");
+  const d=arr.find(x=>x.id===id);
+  d.fav=!d.fav;
+  store("downloads",arr);
+  renderDownloads(); renderFavorites();
+}
+
+function renderFavorites(){
+  favoritesList.innerHTML="";
+  const arr=load("downloads").filter(d=>d.fav);
+  if(!arr.length){ favoritesList.innerHTML="<div class='muted'>No hay favoritos.</div>"; return; }
+  arr.forEach(f=>{
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`<strong>${f.title}</strong>
+      <div class="actions">
+        <button onclick="play('${f.url}','${f.title}')">▶</button>
+      </div>`;
+    favoritesList.appendChild(div);
+  });
+}
+
+renderPrograms(); renderDownloads(); renderFavorites();
 </script>
 </body>
 </html>
