@@ -34,7 +34,15 @@ audio{width:100%}
 .programHeader strong{flex:1}
 .loading{color:#facc15;font-size:13px}
 .error{color:#fca5a5;font-size:13px}
-.badge{background:var(--accent);color:#000;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:800}
+
+/* Animación de refresco */
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 </style>
 </head>
 <body>
@@ -49,18 +57,6 @@ audio{width:100%}
       <button class="primary" onclick="searchPods()">Buscar</button>
     </div>
     <div id="podResults" class="list"></div>
-  </div>
-
-  <div class="card">
-    <h3>➕ Añadir podcast manualmente (RSS)</h3>
-    <div class="row">
-      <input id="manualTitle" placeholder="Nombre del programa (opcional)" style="flex:1">
-    </div>
-    <div class="row">
-      <input id="manualUrl" placeholder="URL del feed RSS" style="flex:1">
-      <button class="primary" onclick="addManual()">Añadir</button>
-    </div>
-    <div id="manualMsg" class="muted"></div>
   </div>
 
   <div class="card">
@@ -91,11 +87,23 @@ function play(url,title,id){
   currentEpisodeId = id;
   player.src=url;
   document.getElementById("playerTitle").textContent=title;
+
   const saved = localStorage.getItem("pos_"+id);
   player.onloadedmetadata = () => {
     if(saved && !isNaN(saved)) player.currentTime = Number(saved);
   };
+
   player.play().catch(()=>{});
+
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: title,
+      artist: "Podcast",
+      album: "Mi App"
+    });
+    navigator.mediaSession.setActionHandler('play', () => player.play());
+    navigator.mediaSession.setActionHandler('pause', () => player.pause());
+  }
 }
 
 player.addEventListener("timeupdate",()=>{
@@ -149,21 +157,11 @@ async function searchFyyd(q,arr){
   }catch{}
 }
 
-/* ===== MANUAL ===== */
-function addManual(){
-  const url = manualUrl.value.trim();
-  if(!url){ manualMsg.textContent="URL no válida"; return; }
-  const title = manualTitle.value.trim() || url;
-  addProgram(url,title);
-  manualMsg.textContent="Programa añadido correctamente.";
-  manualUrl.value=""; manualTitle.value="";
-}
-
 /* ===== PROGRAMAS ===== */
 function addProgram(feedUrl,title){
   let programs = load("programs");
   if(programs.some(p=>p.feedUrl===feedUrl)) return;
-  programs.push({title,feedUrl,episodes:[],etag:null,lastBuild:null,open:true,loading:true,error:false});
+  programs.push({title,feedUrl,episodes:[],open:true,loading:true,error:false});
   store("programs",programs);
   renderPrograms();
   loadEpisodes(feedUrl,true);
@@ -181,7 +179,11 @@ async function loadEpisodes(feedUrl,initial=false){
 
   let programs=load("programs");
   const p=programs.find(x=>x.feedUrl===feedUrl);
-  if(!text){ p.loading=false; p.error=true; store("programs",programs); renderPrograms(); return; }
+
+  if(!text){
+    p.loading=false; p.error=true;
+    store("programs",programs); renderPrograms(); return;
+  }
 
   try{
     const xml = new DOMParser().parseFromString(text,"text/xml");
@@ -212,8 +214,11 @@ async function loadEpisodes(feedUrl,initial=false){
   }
 }
 
-function refreshProgram(feedUrl){
-  loadEpisodes(feedUrl,false);
+function refreshProgram(feedUrl,btn){
+  if(btn) btn.classList.add("spin");
+  loadEpisodes(feedUrl,false).finally(()=>{
+    if(btn) btn.classList.remove("spin");
+  });
 }
 
 function toggleProgram(feedUrl){
@@ -237,6 +242,14 @@ function togglePlayed(id){
   renderPrograms();
 }
 
+function deleteEpisode(programFeed,id){
+  let programs=load("programs");
+  const p=programs.find(x=>x.feedUrl===programFeed);
+  p.episodes = p.episodes.filter(e=>e.id!==id);
+  store("programs",programs);
+  renderPrograms();
+}
+
 function renderPrograms(){
   programList.innerHTML="";
   load("programs").forEach(p=>{
@@ -245,7 +258,7 @@ function renderPrograms(){
     box.innerHTML=`
       <div class="programHeader">
         <strong>${p.title}</strong>
-        <button class="small" onclick="refreshProgram('${esc(p.feedUrl)}')">🔄</button>
+        <button class="small" onclick="refreshProgram('${esc(p.feedUrl)}',this)">🔄</button>
         <button class="small" onclick="toggleProgram('${esc(p.feedUrl)}')">${p.open?"▲":"▼"}</button>
         <button class="small" onclick="deleteProgram('${esc(p.feedUrl)}')">🗑</button>
       </div>`;
@@ -262,8 +275,9 @@ function renderPrograms(){
           ${played?"✅ ":""}${e.title}
           <div class="actions">
             <button onclick="play('${esc(e.url)}','${esc(e.title)}','${e.id}')">▶</button>
-            <button onclick="togglePlayed('${e.id}')">${played?"Marcar como no escuchado":"Marcar como escuchado"}</button>
+            <button onclick="togglePlayed('${e.id}')">${played?"No escuchado":"Escuchado"}</button>
             <a href="${e.url}" target="_blank">⬇ Descargar</a>
+            <button onclick="deleteEpisode('${esc(p.feedUrl)}','${e.id}')">🗑</button>
           </div>`;
         box.appendChild(div);
       });
