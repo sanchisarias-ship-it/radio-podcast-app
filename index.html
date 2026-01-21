@@ -14,7 +14,6 @@
   --accent:#f43f5e;
   --text:#f5f5f5;
   --muted:#a1a1aa;
-  --danger:#7f1d1d;
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text)}
@@ -22,10 +21,9 @@ header{position:sticky;top:0;background:#000;padding:16px;text-align:center;font
 .section{padding:14px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:16px;margin-bottom:14px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-input,button{padding:12px 16px;border-radius:999px;border:1px solid var(--border);background:#000;color:#fff}
+input,button,a{padding:10px 14px;border-radius:999px;border:1px solid var(--border);background:#000;color:#fff;text-decoration:none;font-size:14px}
 button.primary{background:var(--accent);color:#000;font-weight:800}
 button.small{padding:6px 12px;font-size:12px}
-button.toggle{background:#111}
 .list{display:grid;gap:10px}
 .item{background:#000;border:1px solid var(--border);border-radius:18px;padding:12px}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
@@ -36,8 +34,7 @@ audio{width:100%}
 .programHeader strong{flex:1}
 .loading{color:#facc15;font-size:13px}
 .error{color:#fca5a5;font-size:13px}
-.progress{height:6px;background:#222;border-radius:999px;overflow:hidden;margin-top:4px}
-.progress > div{height:100%;background:var(--accent);width:0%}
+.badge{background:var(--accent);color:#000;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:800}
 </style>
 </head>
 <body>
@@ -52,6 +49,18 @@ audio{width:100%}
       <button class="primary" onclick="searchPods()">Buscar</button>
     </div>
     <div id="podResults" class="list"></div>
+  </div>
+
+  <div class="card">
+    <h3>➕ Añadir podcast manualmente (RSS)</h3>
+    <div class="row">
+      <input id="manualTitle" placeholder="Nombre del programa (opcional)" style="flex:1">
+    </div>
+    <div class="row">
+      <input id="manualUrl" placeholder="URL del feed RSS" style="flex:1">
+      <button class="primary" onclick="addManual()">Añadir</button>
+    </div>
+    <div id="manualMsg" class="muted"></div>
   </div>
 
   <div class="card">
@@ -78,16 +87,24 @@ const PROXIES = [
 
 let currentEpisodeId = null;
 
+if ("Notification" in window && Notification.permission !== "granted") {
+  Notification.requestPermission();
+}
+
+function notify(title, body){
+  if(Notification.permission === "granted"){
+    new Notification(title, { body });
+  }
+}
+
 function play(url,title,id){
   currentEpisodeId = id;
   player.src=url;
   document.getElementById("playerTitle").textContent=title;
-
   const saved = localStorage.getItem("pos_"+id);
   player.onloadedmetadata = () => {
     if(saved && !isNaN(saved)) player.currentTime = Number(saved);
   };
-
   player.play().catch(()=>{});
 }
 
@@ -114,7 +131,7 @@ async function searchPods(){
     div.innerHTML=`<strong>${p.title}</strong>
       <p class="muted">${p.author||""}</p>
       <button ${added?"disabled":""} onclick="addProgram('${esc(p.feedUrl)}','${esc(p.title)}')">
-        ${added?"✔ Añadido":"➕ Añadir a mis programas"}
+        ${added?"✔ Añadido":"➕ Añadir"}
       </button>`;
     podResults.appendChild(div);
   });
@@ -142,18 +159,27 @@ async function searchFyyd(q,arr){
   }catch{}
 }
 
+/* ===== MANUAL ===== */
+function addManual(){
+  const url = manualUrl.value.trim();
+  if(!url){ manualMsg.textContent="URL no válida"; return; }
+  const title = manualTitle.value.trim() || url;
+  addProgram(url,title);
+  manualMsg.textContent="Programa añadido y comprobando episodios...";
+  manualUrl.value=""; manualTitle.value="";
+}
+
 /* ===== PROGRAMAS ===== */
 function addProgram(feedUrl,title){
   let programs = load("programs");
   if(programs.some(p=>p.feedUrl===feedUrl)) return;
-  programs.push({title,feedUrl,episodes:[],open:true,loading:true,error:false});
+  programs.push({title,feedUrl,episodes:[],lastCount:0,open:true,loading:true,error:false});
   store("programs",programs);
   renderPrograms();
-  loadEpisodes(feedUrl);
-  searchPods();
+  loadEpisodes(feedUrl,true);
 }
 
-async function loadEpisodes(feedUrl){
+async function loadEpisodes(feedUrl,initial=false){
   let text=null;
   for(const make of PROXIES){
     try{
@@ -175,23 +201,31 @@ async function loadEpisodes(feedUrl){
     const xml = new DOMParser().parseFromString(text,"text/xml");
     const items=[...xml.querySelectorAll("item")];
 
-    p.episodes = items.map(i=>({
+    const newEpisodes = items.map(i=>({
       id:btoa(i.querySelector("guid")?.textContent || i.querySelector("title")?.textContent || Math.random()),
       title:i.querySelector("title")?.textContent || "Episodio",
       url:i.querySelector("enclosure")?.getAttribute("url"),
-      date: new Date(i.querySelector("pubDate")?.textContent || Date.now()).getTime()
+      date:new Date(i.querySelector("pubDate")?.textContent||Date.now()).getTime()
     })).filter(e=>e.url);
 
-    // Ordenar por fecha (más nuevos primero)
-    p.episodes.sort((a,b)=>b.date - a.date);
+    if(!initial && newEpisodes.length > p.lastCount){
+      notify("Nuevo episodio", p.title + " tiene nuevos capítulos");
+    }
 
+    p.lastCount = newEpisodes.length;
+    p.episodes = newEpisodes.sort((a,b)=>b.date-a.date);
     p.loading=false; p.error=false;
+
     store("programs",programs);
     renderPrograms();
   }catch{
     p.loading=false; p.error=true;
     store("programs",programs); renderPrograms();
   }
+}
+
+function refreshProgram(feedUrl){
+  loadEpisodes(feedUrl,false);
 }
 
 function toggleProgram(feedUrl){
@@ -206,17 +240,6 @@ function deleteProgram(feedUrl){
   let programs=load("programs").filter(p=>p.feedUrl!==feedUrl);
   store("programs",programs);
   renderPrograms();
-  searchPods();
-}
-
-function togglePlayed(id){
-  const key = "played_"+id;
-  if(localStorage.getItem(key)==="1"){
-    localStorage.removeItem(key);
-  } else {
-    localStorage.setItem(key,"1");
-  }
-  renderPrograms();
 }
 
 function renderPrograms(){
@@ -227,6 +250,7 @@ function renderPrograms(){
     box.innerHTML=`
       <div class="programHeader">
         <strong>${p.title}</strong>
+        <button class="small" onclick="refreshProgram('${esc(p.feedUrl)}')">🔄</button>
         <button class="small" onclick="toggleProgram('${esc(p.feedUrl)}')">${p.open?"▲":"▼"}</button>
         <button class="small" onclick="deleteProgram('${esc(p.feedUrl)}')">🗑</button>
       </div>`;
@@ -236,16 +260,12 @@ function renderPrograms(){
       if(p.error) box.innerHTML += `<div class="error">No se pudieron cargar.</div>`;
 
       p.episodes.forEach(e=>{
-        const played=localStorage.getItem("played_"+e.id)==="1";
-        const pos = localStorage.getItem("pos_"+e.id) || 0;
         const div=document.createElement("div");
         div.className="item";
-        div.innerHTML=`
-          ${played?"✅ ":""}${e.title}
-          <div class="progress"><div style="width:${Math.min((pos/3600)*100,100)}%"></div></div>
+        div.innerHTML=`${e.title}
           <div class="actions">
             <button onclick="play('${esc(e.url)}','${esc(e.title)}','${e.id}')">▶</button>
-            <button class="toggle" onclick="togglePlayed('${e.id}')">${played?"Marcar como no escuchado":"Marcar como escuchado"}</button>
+            <a href="${e.url}" target="_blank">⬇ Descargar</a>
           </div>`;
         box.appendChild(div);
       });
@@ -253,6 +273,11 @@ function renderPrograms(){
     programList.appendChild(box);
   });
 }
+
+// Auto comprobación cada 15 minutos
+setInterval(()=>{
+  load("programs").forEach(p=> loadEpisodes(p.feedUrl,false));
+}, 900000);
 
 renderPrograms();
 </script>
